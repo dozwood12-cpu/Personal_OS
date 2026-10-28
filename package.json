@@ -6,23 +6,36 @@
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx tests/domain.test.ts && node tests/migrations.cjs && node tests/login-report.mjs",
+    "test:browser": "node tests/workspace-browser.cjs",
+    "test:media": "node tests/media-api.cjs"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@supabase/supabase-js": "^2.57.0",
+    "exceljs": "^4.4.0",
+    "jose": "^6.0.0",
+    "jszip": "^3.10.2",
+    "lucide-react": "^0.468.0",
     "next": "^15.5.10",
+    "papaparse": "^5.7.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "@supabase/supabase-js": "^2.57.0",
-    "lucide-react": "^0.468.0",
-    "jose": "^6.0.0"
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "typescript": "^5.9.0",
+    "@electric-sql/pglite": "^0.5.13",
+    "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^22.0.0",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "playwright-core": "^1.64.1",
     "tailwindcss": "^4.1.0",
-    "@tailwindcss/postcss": "^4.1.0"
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0"
   },
   "engines": {
     "node": "22.x"

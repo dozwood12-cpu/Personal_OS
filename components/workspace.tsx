@@ -1,41 +1,759 @@
-'use client';
-import {loginReport, networkLoginReport} from '@/lib/login-client';
-import {useEffect,useState, type FormEvent} from 'react';
-import {ArrowDownLeft,ArrowUpRight,LayoutDashboard,Layers,FolderLock,Settings,Plus,Search,ArrowRight,LogOut,ChevronLeft,ChevronRight,Download,Trash2,Pencil,X,Orbit,CalendarDays,List,Wallet,TrendingUp} from 'lucide-react';
-type Category={id:string;name:string;kind:string};
-type Transaction={id:string;title:string;amount:number;category_id:string;date:string};
-type Project={id:string;title:string;status_id:string;progress:number;deadline:string;is_mwb:boolean};
-type Doc={id:string;title:string;category_id:string;size:number;created_at:string};
-type Data={categories:Category[];transactions:Transaction[];projects:Project[];documents:Doc[]};
-const empty:Data={categories:[],transactions:[],projects:[],documents:[]};
-const money=(n:number)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n);
-const today=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});
-const navigation=[{name:'Jurnal Keuangan',icon:LayoutDashboard},{name:'Project & MWBs',icon:Layers},{name:'Arsip Dokumen',icon:FolderLock},{name:'Settings',icon:Settings}];
-export default function Workspace({initialAuth}:{initialAuth:boolean}){
- const [copied,setCopied]=useState(false);
- const [auth,setAuth]=useState(initialAuth),[page,setPage]=useState(0),[data,setData]=useState<Data>(empty),[error,setError]=useState(''),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[search,setSearch]=useState(''),[filter,setFilter]=useState(''),[view,setView]=useState('table'),[month,setMonth]=useState(new Date()),[sort,setSort]=useState('deadline'),[modal,setModal]=useState<{table:string;record?:Record<string,unknown>}|null>(null);
- async function load(){setLoading(true);try{const r=await fetch('/api/data');if(r.status===401){setAuth(false);setError('ORBIT — Laporan error login\nEndpoint: GET /api/data\nHTTP: 401\nKode: LOGIN_SESSION_NOT_ACCEPTED\nPesan: Session login tidak diterima atau sudah kedaluwarsa.\nSaran: Login ulang. Jika berulang, pastikan cookie diizinkan, akses melalui HTTPS, dan SESSION_SECRET konsisten pada deployment.');return;}const d=await r.json();if(!r.ok)throw new Error(d.error);setData(d);setError('');}catch(e){setError(String((e as Error).message));}finally{setLoading(false);}}
- useEffect(()=>{if(auth)void load();},[auth]);
- const cat=(id:string)=>data.categories.find(c=>c.id===id);
- const income=data.transactions.filter(t=>cat(t.category_id)?.kind==='income').reduce((s,t)=>s+Number(t.amount),0),expense=data.transactions.filter(t=>cat(t.category_id)?.kind==='expense').reduce((s,t)=>s+Number(t.amount),0);
- const projects=data.projects.filter(p=>p.title.toLowerCase().includes(search.toLowerCase())&&(!filter||p.status_id===filter)).sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='progress'?b.progress-a.progress:a.deadline.localeCompare(b.deadline));
- async function mutate(table:string,action:string,id?:string,payload?:unknown){const r=await fetch('/api/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({table,action,id,data:payload})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Operasi gagal');}
- async function remove(table:string,id:string){if(!confirm('Hapus item ini?'))return;setBusy(true);try{await mutate(table,'delete',id);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
- async function save(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!modal)return;setBusy(true);setError('');try{const f=new FormData(e.currentTarget);if(modal.table==='documents'){const r=await fetch('/api/files',{method:'POST',body:f});const d=await r.json();if(!r.ok)throw new Error(d.error);}else{const payload=Object.fromEntries(f);if(modal.table==='projects')Object.assign(payload,{is_mwb:f.get('is_mwb')==='on'});await mutate(modal.table,modal.record?.id?'update':'create',modal.record?.id as string,payload);}setModal(null);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
- if(!auth)return <main className="login-shell"><div className="login-glow"/><form className="panel login" onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');setCopied(false);const f=new FormData(e.currentTarget);try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(f))});const report=await loginReport(r);if(report){setError(report);return;}setAuth(true);}catch{setError(networkLoginReport());}finally{setBusy(false);}}}><div className="brand"><Orbit size={30}/><span>orbit<span className="muted"> / OS</span></span></div><h1>Login</h1><label>Username<input name="username" required autoComplete="username" placeholder="admin"/></label><label>Password<input name="password" type="password" required autoComplete="current-password" placeholder="••••••••"/></label>{error&&<div role="alert" className="error login-error"><strong>Login belum berhasil</strong><p>Salin laporan berikut dan kirimkan untuk diagnosis.</p><textarea aria-label="Laporan error login" readOnly value={error} rows={10}/><button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(error);setCopied(true);}catch{setCopied(false);const area=document.querySelector<HTMLTextAreaElement>('.login-error textarea');area?.focus();area?.select();}}}>{copied?'Laporan tersalin':'Salin laporan error'}</button><small>Password dan secret tidak disertakan.</small></div>}<button className="primary" disabled={busy}>{busy?'Menghubungkan…':'Masuk ke workspace'}<ArrowRight size={17}/></button></form></main>;
- const edit=(table:string,record?:object)=>{setError('');setModal({table,record:record as Record<string,unknown>});};
- const actions=(table:string,r:{id:string})=><div className="row-actions"><button aria-label="Edit" onClick={()=>edit(table,r)}><Pencil size={14}/></button><button disabled={busy} aria-label="Hapus" onClick={()=>remove(table,r.id)}><Trash2 size={14}/></button></div>;
- const add=()=>edit(page===0?'transactions':page===1?'projects':page===2?'documents':'categories');
- const week=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const date=d.toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});return {label:d.toLocaleDateString('id-ID',{weekday:'short'}),in:data.transactions.filter(t=>t.date===date&&cat(t.category_id)?.kind==='income').reduce((s,t)=>s+Number(t.amount),0),out:data.transactions.filter(t=>t.date===date&&cat(t.category_id)?.kind==='expense').reduce((s,t)=>s+Number(t.amount),0)};});const max=Math.max(1,...week.flatMap(d=>[d.in,d.out]));
- return <div className="app-shell"><aside className="sidebar"><a className="brand" href="/"><Orbit size={29}/><span>orbit<span className="muted"> / OS</span></span></a><nav aria-label="Modul">{navigation.map((n,i)=><button key={n.name} aria-label={n.name} aria-current={page===i?'page':undefined} title={n.name} className={page===i?'active':''} onClick={()=>{setPage(i);setSearch('');setFilter('');}}><n.icon size={18}/>{n.name}{i===1&&<small>{data.projects.length}</small>}</button>)}</nav><div className="sidebar-bottom"><button className="profile" aria-label="Keluar workspace" title="Keluar workspace" onClick={async()=>{await fetch('/api/logout',{method:'POST'});setAuth(false);setData(empty);}}><span className="avatar">A</span><span>Admin<small>Keluar workspace</small></span><LogOut size={16}/></button></div></aside><main className="main"><header className="topbar"><div>Workspace <span>/</span> <b>{navigation[page].name}</b></div><span className="top-date">{new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Jakarta'})}</span></header><div className="content"><div className="page-heading"><div><h1>{navigation[page].name}</h1></div><button className="primary" onClick={add}><Plus size={17}/>{['Transaksi baru','Proyek baru','Upload dokumen','Kategori baru'][page]}</button></div>{error&&<div role="alert" className="error">{error}<button onClick={()=>void load()}>Coba lagi</button></div>}{loading&&<p className="muted" role="status">Memuat workspace…</p>}
- {page===0&&<><div className="stats"><section className="panel balance"><div className="card-label"><span>Total saldo</span><Wallet size={18}/></div><h2>{money(income-expense)}</h2><div className="stat-foot"><span className="tiny-badge">IDR</span></div></section><section className="panel"><div className="card-label"><span>Total pemasukan</span><ArrowDownLeft size={18}/></div><h2>{money(income)}</h2><div className="stat-foot"><span className="tiny-badge">{data.transactions.filter(t=>cat(t.category_id)?.kind==='income').length} transaksi</span></div></section><section className="panel"><div className="card-label"><span>Total pengeluaran</span><ArrowUpRight size={18}/></div><h2>{money(expense)}</h2><div className="stat-foot"><span className="tiny-badge">{data.transactions.filter(t=>cat(t.category_id)?.kind==='expense').length} transaksi</span></div></section></div><div className="middle-grid"><section className="panel"><div className="section-head"><div><h3>Cash flow</h3></div><span className="tiny-badge">7 hari</span></div><div className="chart" role="img" aria-label="Grafik pemasukan dan pengeluaran tujuh hari terakhir">{week.map((d,i)=><div className="chart-col" key={i}><div className="bars"><div title={`Pemasukan: ${money(d.in)}`} style={{height:`${d.in/max*100}%`}}/><div title={`Pengeluaran: ${money(d.out)}`} style={{height:`${d.out/max*100}%`}}/></div><small>{d.label}</small></div>)}</div><div className="legend"><span><i/>Pemasukan</span><span><i/>Pengeluaran</span></div></section><section className="panel focus-card"><div className="section-head"><h3>Tenggat proyek</h3><TrendingUp size={18}/></div>{[...data.projects].filter(p=>p.progress<100).sort((a,b)=>a.deadline.localeCompare(b.deadline)).slice(0,3).map(p=><div className="radar" key={p.id}><span className="radar-icon"><Layers size={16}/></span><div><b>{p.title}</b><small>{p.deadline} {p.is_mwb?'· MWB':''}</small></div><span>{p.progress}%</span></div>)}{!data.projects.some(p=>p.progress<100)&&<div className="empty"><Layers size={26}/><p>Tidak ada proyek aktif</p><button onClick={()=>{setPage(1);edit('projects');}}>Tambah proyek <ArrowRight size={14}/></button></div>}<button className="text-link" onClick={()=>setPage(1)}>Lihat semua proyek <ArrowRight size={15}/></button></section></div><section className="panel"><div className="section-head"><div><h3>Transaksi</h3></div><span className="tiny-badge">{data.transactions.length} transaksi</span></div><div className="toolbar"><div className="search"><Search size={16}/><input aria-label="Cari transaksi" placeholder="Cari transaksi…" value={search} onChange={e=>setSearch(e.target.value)}/></div><select aria-label="Filter jenis" value={filter} onChange={e=>setFilter(e.target.value)}><option value="">Semua jenis</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select></div><div className="table-wrap"><table><thead><tr><th>TRANSAKSI</th><th>KATEGORI</th><th>TANGGAL</th><th>JUMLAH</th><th/></tr></thead><tbody>{data.transactions.filter(t=>t.title.toLowerCase().includes(search.toLowerCase())&&(!filter||cat(t.category_id)?.kind===filter)).sort((a,b)=>b.date.localeCompare(a.date)).map(t=><tr key={t.id}><td><span className="table-title"><span className={'transaction-icon '+(cat(t.category_id)?.kind==='income'?'positive':'')}>{cat(t.category_id)?.kind==='income'?<ArrowDownLeft size={17}/>:<ArrowUpRight size={17}/>}</span>{t.title}</span></td><td><span className="tag">{cat(t.category_id)?.name}</span></td><td>{t.date}</td><td className={cat(t.category_id)?.kind==='income'?'positive':''}>{cat(t.category_id)?.kind==='income'?'+':'−'}{money(Number(t.amount))}</td><td>{actions('transactions',t)}</td></tr>)}</tbody></table>{!data.transactions.length&&<Empty text="Belum ada transaksi"/>}</div></section></>}
- {page===1&&<section className="panel"><div className="section-head"><div><h3>Proyek <span className="muted">/ {data.projects.length}</span></h3></div><div className="segmented"><button aria-label="Table view" className={view==='table'?'selected':''} onClick={()=>setView('table')}><List size={16}/>Tabel</button><button aria-label="Calendar view" className={view==='calendar'?'selected':''} onClick={()=>setView('calendar')}><CalendarDays size={16}/>Kalender</button></div></div><div className="toolbar"><div className="search"><Search size={16}/><input placeholder="Cari proyek…" aria-label="Cari proyek" value={search} onChange={e=>setSearch(e.target.value)}/></div><select aria-label="Filter status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="">Semua status</option>{data.categories.filter(c=>c.kind==='status').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><select aria-label="Urutkan proyek" value={sort} onChange={e=>setSort(e.target.value)}><option value="deadline">Tenggat terdekat</option><option value="title">Nama A–Z</option><option value="progress">Progres tertinggi</option></select></div>{view==='table'?<div className="table-wrap"><table><thead><tr><th>NAMA PROYEK</th><th>STATUS</th><th>PROGRES</th><th>TENGGAT</th><th/></tr></thead><tbody>{projects.map(p=><tr key={p.id}><td><b>{p.title}</b> {p.is_mwb&&<span className="tag purple">MWB</span>}</td><td><span className="tag">{cat(p.status_id)?.name}</span></td><td><div className="progress"><div><i style={{width:p.progress+'%'}}/></div><span>{p.progress}%</span></div></td><td className={p.deadline<today()&&p.progress<100?'overdue':''}>{p.deadline}</td><td>{actions('projects',p)}</td></tr>)}</tbody></table>{!projects.length&&<Empty text="Tidak ada proyek"/>}</div>:<><div className="calendar-heading"><button aria-label="Bulan sebelumnya" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()-1,1))}><ChevronLeft size={18}/></button><h3>{month.toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</h3><button aria-label="Bulan berikutnya" onClick={()=>setMonth(new Date(month.getFullYear(),month.getMonth()+1,1))}><ChevronRight size={18}/></button></div><div className="calendar">{['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map(d=><div className="day-label" key={d}>{d}</div>)}{Array.from({length:(new Date(month.getFullYear(),month.getMonth(),1).getDay()+6)%7},(_,i)=><div className="day blank" key={'blank'+i}/>)}{Array.from({length:new Date(month.getFullYear(),month.getMonth()+1,0).getDate()},(_,i)=>{const date=`${month.getFullYear()}-${String(month.getMonth()+1).padStart(2,'0')}-${String(i+1).padStart(2,'0')}`;return <div className={'day '+(date===today()?'today':'')} key={date}><span>{i+1}</span>{projects.filter(p=>p.deadline===date).map(p=><button key={p.id} onClick={()=>edit('projects',p)}>{p.is_mwb?'◆ ':''}{p.title}</button>)}</div>;})}</div></>}</section>}
- {page===2&&<section className="panel"><div className="section-head"><div><h3>Dokumen</h3><p>PDF, JPG, PNG, TXT · Maksimal 10 MB per file</p></div><FolderLock size={22}/></div><div className="toolbar"><div className="search"><Search size={16}/><input aria-label="Cari dokumen" placeholder="Cari dokumen…" value={search} onChange={e=>setSearch(e.target.value)}/></div><select aria-label="Filter kategori dokumen" value={filter} onChange={e=>setFilter(e.target.value)}><option value="">Semua kategori</option>{data.categories.filter(c=>c.kind==='document').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="document-grid">{data.documents.filter(d=>d.title.toLowerCase().includes(search.toLowerCase())&&(!filter||d.category_id===filter)).map(d=><article className="document" key={d.id}><div className="document-top"><span className="file-icon"><FolderLock size={28}/></span><button disabled={busy} aria-label="Hapus dokumen" onClick={()=>remove('documents',d.id)}><Trash2 size={15}/></button></div><h3>{d.title}</h3><span className="tag">{cat(d.category_id)?.name}</span><p>{new Date(d.created_at).toLocaleDateString('id-ID')} · {(d.size/1024).toFixed(0)} KB</p><a className="download" href={'/api/files?id='+d.id}><Download size={15}/> Unduh</a></article>)}</div>{!data.documents.length&&<Empty text="Belum ada dokumen"/>}</section>}
- {page===3&&<div className="settings-grid">{[['income','Kategori pemasukan'],['expense','Kategori pengeluaran'],['status','Status proyek'],['document','Kategori dokumen']].map(([kind,title])=><section className="panel" key={kind}><div className="section-head"><h3>{title}</h3><button aria-label={'Tambah '+title} onClick={()=>edit('categories',{kind})}><Plus size={17}/></button></div>{data.categories.filter(c=>c.kind===kind).map(c=><div className="category-row" key={c.id}><span><i className="status-dot"/>{c.name}</span>{actions('categories',c)}</div>)}</section>)}</div>}
- </div></main>
- {modal&&<div className="modal-backdrop" onClick={()=>!busy&&setModal(null)}><section role="dialog" aria-modal="true" aria-labelledby="modal-title" className="panel modal" onClick={e=>e.stopPropagation()}><div className="section-head"><h3 id="modal-title">{modal.record?.id?'Edit':'Tambah'} {modal.table==='transactions'?'transaksi':modal.table==='projects'?'proyek':modal.table==='documents'?'dokumen':'kategori'}</h3><button aria-label="Tutup" disabled={busy} onClick={()=>setModal(null)}><X size={20}/></button></div><form onSubmit={save} key={String(modal.record?.id||'new')}>
- {modal.table==='categories'?<><label>Nama kategori<input name="name" required maxLength={80} defaultValue={String(modal.record?.name||'')}/></label><label>Jenis<select name="kind" defaultValue={String(modal.record?.kind||'income')}><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option><option value="status">Status proyek</option><option value="document">Dokumen</option></select></label></>:<>{modal.table!=='documents'&&<label>{modal.table==='projects'?'Nama proyek':'Deskripsi transaksi'}<input name="title" required maxLength={200} defaultValue={String(modal.record?.title||'')}/></label>}<label>{modal.table==='projects'?'Status':'Kategori'}<select name={modal.table==='projects'?'status_id':'category_id'} required defaultValue={String(modal.record?.category_id||modal.record?.status_id||'')}><option value="" disabled>Pilih kategori</option>{data.categories.filter(c=>modal.table==='projects'?c.kind==='status':modal.table==='documents'?c.kind==='document':['income','expense'].includes(c.kind)).map(c=><option key={c.id} value={c.id}>{c.name}{modal.table==='transactions'?` · ${c.kind==='income'?'Masuk':'Keluar'}`:''}</option>)}</select></label>{modal.table==='transactions'&&<><label>Jumlah (Rp)<input name="amount" type="number" min="0.01" step="0.01" max="99999999999999" required defaultValue={String(modal.record?.amount||'')}/></label><label>Tanggal<input name="date" type="date" required defaultValue={String(modal.record?.date||today())}/></label></>}{modal.table==='projects'&&<><label>Progres (%)<input name="progress" type="number" min="0" max="100" required defaultValue={String(modal.record?.progress||0)}/></label><label>Tenggat waktu<input name="deadline" type="date" required defaultValue={String(modal.record?.deadline||today())}/></label><label className="checkbox"><input type="checkbox" name="is_mwb" defaultChecked={!!modal.record?.is_mwb}/> Major Work Block (MWB)</label></>}{modal.table==='documents'&&<label>File<input name="file" type="file" accept="application/pdf,image/jpeg,image/png,text/plain" required/></label>}</>}
- {error&&<p className="error" role="alert">{error}</p>}<button className="primary" disabled={busy}>{busy?'Menyimpan…':'Simpan'}<ArrowRight size={16}/></button></form></section></div>}
- </div>;
+"use client";
+import { uploadFile } from "@/lib/uploads";
+import { CategoryMark } from "@/components/features/category-mark";
+import Finance from "@/components/features/finance";
+import Projects from "@/components/features/projects";
+import Documents from "@/components/features/documents";
+import ExtraSettings from "@/components/features/settings";
+import Platform, { defaultWidgets } from "@/components/features/platform";
+import { tables, type Dataset, type Row } from "@/lib/model";
+import {
+  PersonalizeProvider,
+  usePersonalization,
+} from "@/components/personalize/provider";
+import { Artwork } from "@/components/personalize/artwork";
+import PersonalizeEditor from "@/components/personalize/editor";
+import { Palette } from "lucide-react";
+import { loginReport, networkLoginReport } from "@/lib/login-client";
+import { useEffect, useState, type FormEvent } from "react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  LayoutDashboard,
+  Layers,
+  FolderLock,
+  Settings,
+  Plus,
+  Search,
+  ArrowRight,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Trash2,
+  Pencil,
+  X,
+  Orbit,
+  CalendarDays,
+  List,
+  Wallet,
+  TrendingUp,
+} from "lucide-react";
+type Category = { id: string; name: string; kind: string };
+type Transaction = {
+  id: string;
+  title: string;
+  amount: number;
+  category_id: string;
+  date: string;
+};
+type Project = {
+  id: string;
+  title: string;
+  status_id: string;
+  progress: number;
+  deadline: string;
+  is_mwb: boolean;
+};
+type Doc = {
+  id: string;
+  title: string;
+  category_id: string;
+  size: number;
+  created_at: string;
+};
+type Data = {
+  categories: Category[];
+  transactions: Transaction[];
+  projects: Project[];
+  documents: Doc[];
+};
+const empty: Data = {
+  ...Object.fromEntries(tables.map((t) => [t, []])),
+  categories: [],
+  transactions: [],
+  projects: [],
+  documents: [],
+};
+const money = (n: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(n);
+const today = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+const navigation = [
+  { name: "Jurnal Keuangan", icon: LayoutDashboard },
+  { name: "Project & MWBs", icon: Layers },
+  { name: "Arsip Dokumen", icon: FolderLock },
+  { name: "Settings", icon: Settings },
+  { name: "Personalize", icon: Palette },
+];
+export default function Workspace({ initialAuth }: { initialAuth: boolean }) {
+  const [authenticated, setAuthenticated] = useState(initialAuth);
+  return (
+    <PersonalizeProvider authenticated={authenticated}>
+      <WorkspaceContent initialAuth={initialAuth} onAuth={setAuthenticated} />
+    </PersonalizeProvider>
+  );
 }
-function Empty({text}:{text:string}){return <div className="empty"><Orbit size={30}/><p>{text}</p></div>;}
+function WorkspaceContent({
+  initialAuth,
+  onAuth,
+}: {
+  initialAuth: boolean;
+  onAuth: (v: boolean) => void;
+}) {
+  const { theme } = usePersonalization();
+  const [copied, setCopied] = useState(false);
+  const [auth, setAuth] = useState(initialAuth),
+    [page, setPage] = useState(0),
+    [data, setData] = useState<Data>(empty),
+    [error, setError] = useState(""),
+    [loading, setLoading] = useState(false),
+    [busy, setBusy] = useState(false),
+    [search, setSearch] = useState(""),
+    [filter, setFilter] = useState(""),
+    [modal, setModal] = useState<{
+      table: string;
+      record?: Record<string, unknown>;
+    } | null>(null);
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/data");
+      if (r.status === 401) {
+        setAuth(false);
+        setError(
+          "ORBIT — Laporan error login\nEndpoint: GET /api/data\nHTTP: 401\nKode: LOGIN_SESSION_NOT_ACCEPTED\nPesan: Session login tidak diterima atau sudah kedaluwarsa.\nSaran: Login ulang. Jika berulang, pastikan cookie diizinkan, akses melalui HTTPS, dan SESSION_SECRET konsisten pada deployment.",
+        );
+        return;
+      }
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setData({ ...empty, ...d });
+      setError("");
+    } catch (e) {
+      setError(String((e as Error).message));
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    onAuth(auth);
+    if (auth) void load();
+  }, [auth]);
+  const extended = data as unknown as Dataset;
+  const [widgets, setWidgets] = useState(defaultWidgets);
+  useEffect(() => {
+    const w = extended.app_settings?.find((s) => s.key === "widgets")?.value;
+    if (Array.isArray(w)) setWidgets(w);
+  }, [data]);
+  async function mutate(
+    table: string,
+    action: string,
+    id?: string,
+    payload?: unknown,
+  ) {
+    const r = await fetch("/api/data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ table, action, id, data: payload }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Operasi gagal");
+  }
+  async function remove(table: string, id: string) {
+    if (!confirm("Hapus item ini?")) return;
+    setBusy(true);
+    try {
+      await mutate(table, "delete", id);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function save(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!modal) return;
+    setBusy(true);
+    setError("");
+    try {
+      const f = new FormData(e.currentTarget);
+      if (modal.table === "documents") {
+        const file = f.get("file");
+        if (!(file instanceof File)) throw new Error("Pilih file");
+        await uploadFile("/api/files", file, {
+          category_id: String(f.get("category_id")),
+        });
+      } else {
+        const payload = Object.fromEntries(f);
+        if (modal.table === "projects")
+          Object.assign(payload, { is_mwb: f.get("is_mwb") === "on" });
+        await mutate(
+          modal.table,
+          modal.record?.id ? "update" : "create",
+          modal.record?.id as string,
+          payload,
+        );
+      }
+      setModal(null);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!auth)
+    return (
+      <main className="login-shell">
+        <Artwork config={theme.login} login />
+        <form
+          className="panel login"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError("");
+            setCopied(false);
+            const f = new FormData(e.currentTarget);
+            try {
+              const r = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(Object.fromEntries(f)),
+              });
+              const report = await loginReport(r);
+              if (report) {
+                setError(report);
+                return;
+              }
+              setAuth(true);
+            } catch {
+              setError(networkLoginReport());
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <div className="brand">
+            <Orbit size={30} />
+            <span>
+              orbit<span className="muted"> / OS</span>
+            </span>
+          </div>
+          <h1>Login</h1>
+          <label>
+            Username
+            <input
+              name="username"
+              required
+              autoComplete="username"
+              placeholder="admin"
+            />
+          </label>
+          <label>
+            Password
+            <input
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              placeholder="••••••••"
+            />
+          </label>
+          {error && (
+            <div role="alert" className="error login-error">
+              <strong>Login belum berhasil</strong>
+              <p>Salin laporan berikut dan kirimkan untuk diagnosis.</p>
+              <textarea
+                aria-label="Laporan error login"
+                readOnly
+                value={error}
+                rows={10}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(error);
+                    setCopied(true);
+                  } catch {
+                    setCopied(false);
+                    const area = document.querySelector<HTMLTextAreaElement>(
+                      ".login-error textarea",
+                    );
+                    area?.focus();
+                    area?.select();
+                  }
+                }}
+              >
+                {copied ? "Laporan tersalin" : "Salin laporan error"}
+              </button>
+              <small>Password dan secret tidak disertakan.</small>
+            </div>
+          )}
+          <button className="primary" disabled={busy}>
+            {busy ? "Menghubungkan…" : "Masuk ke workspace"}
+            <ArrowRight size={17} />
+          </button>
+        </form>
+      </main>
+    );
+  const edit = (table: string, record?: object) => {
+    setError("");
+    setModal({ table, record: record as Record<string, unknown> });
+  };
+  const actions = (table: string, r: { id: string }) => (
+    <div className="row-actions">
+      <button aria-label="Edit" onClick={() => edit(table, r)}>
+        <Pencil size={14} />
+      </button>
+      <button
+        disabled={busy}
+        aria-label="Hapus"
+        onClick={() => remove(table, r.id)}
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+  const add = () =>
+    edit(
+      page === 0
+        ? "transactions"
+        : page === 1
+          ? "projects"
+          : page === 2
+            ? "documents"
+            : "categories",
+    );
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <Artwork config={theme.sidebar} />
+        <a className="brand" href="/">
+          <Orbit size={29} />
+          <span>
+            orbit<span className="muted"> / OS</span>
+          </span>
+        </a>
+        <nav aria-label="Modul">
+          {navigation.map((n, i) => (
+            <button
+              key={n.name}
+              aria-label={n.name}
+              aria-current={page === i ? "page" : undefined}
+              title={n.name}
+              className={page === i ? "active" : ""}
+              onClick={() => {
+                setPage(i);
+                setSearch("");
+                setFilter("");
+              }}
+            >
+              <n.icon size={18} />
+              {n.name}
+              {i === 1 && <small>{data.projects.length}</small>}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <button
+            className="profile"
+            aria-label="Keluar workspace"
+            title="Keluar workspace"
+            onClick={async () => {
+              await fetch("/api/logout", { method: "POST" });
+              setAuth(false);
+              setData(empty);
+            }}
+          >
+            <span className="avatar">
+              {theme.avatar.images.length ? (
+                <Artwork config={theme.avatar} />
+              ) : (
+                "A"
+              )}
+            </span>
+            <span>
+              Admin<small>Keluar workspace</small>
+            </span>
+            <LogOut size={16} />
+          </button>
+        </div>
+      </aside>
+      <main className="main">
+        <header className="topbar">
+          <div>
+            Workspace <span>/</span> <b>{navigation[page].name}</b>
+          </div>
+          <span className="top-date">
+            {new Date().toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              timeZone: "Asia/Jakarta",
+            })}
+          </span>
+        </header>
+        <div className="content">
+          <Platform
+            data={extended}
+            refresh={load}
+            navigate={(n) => setPage(n)}
+            widgets={widgets}
+            setWidgets={setWidgets}
+          />
+          <div className="page-heading">
+            <div>
+              <h1>{navigation[page].name}</h1>
+            </div>
+            {page !== 4 && (
+              <button className="primary" onClick={add}>
+                <Plus size={17} />
+                {
+                  [
+                    "Transaksi baru",
+                    "Proyek baru",
+                    "Upload dokumen",
+                    "Kategori baru",
+                  ][page]
+                }
+              </button>
+            )}
+          </div>
+          {error && (
+            <div role="alert" className="error">
+              {error}
+              <button onClick={() => void load()}>Coba lagi</button>
+            </div>
+          )}
+          {loading && (
+            <p className="muted" role="status">
+              Memuat workspace…
+            </p>
+          )}
+          {page === 4 && <PersonalizeEditor />}
+          {page < 3 &&
+            theme[(["journal", "projects", "documents"] as const)[page]].images
+              .length > 0 && (
+              <div className="module-banner">
+                <Artwork
+                  config={
+                    theme[(["journal", "projects", "documents"] as const)[page]]
+                  }
+                />
+              </div>
+            )}
+          {page === 0 && (
+            <>
+              {theme.dashboard.images.length > 0 && (
+                <div className="module-banner">
+                  <Artwork config={theme.dashboard} />
+                </div>
+              )}
+              <Finance
+                data={extended}
+                refresh={load}
+                widgets={widgets}
+                editTransaction={(r) => edit("transactions", r)}
+                removeTransaction={(r) => void remove("transactions", r.id)}
+              />
+            </>
+          )}
+          {page === 1 && <Projects data={extended} refresh={load} />}
+          {page === 2 && (
+            <Documents
+              data={extended}
+              refresh={load}
+              upload={() => edit("documents")}
+            />
+          )}
+          {page === 3 && (
+            <>
+              <ExtraSettings data={extended} refresh={load} />
+              <div className="settings-grid">
+                {[
+                  ["income", "Kategori pemasukan"],
+                  ["expense", "Kategori pengeluaran"],
+                  ["status", "Status proyek"],
+                  ["document", "Kategori dokumen"],
+                ].map(([kind, title]) => (
+                  <section className="panel" key={kind}>
+                    <div className="section-head">
+                      <h3>{title}</h3>
+                      <button
+                        aria-label={"Tambah " + title}
+                        onClick={() => edit("categories", { kind })}
+                      >
+                        <Plus size={17} />
+                      </button>
+                    </div>
+                    {data.categories
+                      .filter((c) => c.kind === kind)
+                      .map((c) => (
+                        <div className="category-row" key={c.id}>
+                          <CategoryMark category={c as unknown as Row} />
+                          {actions("categories", c)}
+                        </div>
+                      ))}
+                  </section>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+      {modal && (
+        <div className="modal-backdrop" onClick={() => !busy && setModal(null)}>
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+            className="panel modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="section-head">
+              <h3 id="modal-title">
+                {modal.record?.id ? "Edit" : "Tambah"}{" "}
+                {modal.table === "transactions"
+                  ? "transaksi"
+                  : modal.table === "projects"
+                    ? "proyek"
+                    : modal.table === "documents"
+                      ? "dokumen"
+                      : "kategori"}
+              </h3>
+              <button
+                aria-label="Tutup"
+                disabled={busy}
+                onClick={() => setModal(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={save} key={String(modal.record?.id || "new")}>
+              {modal.table === "categories" ? (
+                <>
+                  <label>
+                    Nama kategori
+                    <input
+                      name="name"
+                      required
+                      maxLength={80}
+                      defaultValue={String(modal.record?.name || "")}
+                    />
+                  </label>
+                  <label>
+                    Jenis
+                    <select
+                      name="kind"
+                      defaultValue={String(modal.record?.kind || "income")}
+                    >
+                      <option value="income">Pemasukan</option>
+                      <option value="expense">Pengeluaran</option>
+                      <option value="status">Status proyek</option>
+                      <option value="document">Dokumen</option>
+                    </select>
+                  </label>
+                  <label>
+                    Warna
+                    <input
+                      type="color"
+                      name="color"
+                      defaultValue={String(modal.record?.color || "#a1a1aa")}
+                    />
+                  </label>
+                  <label>
+                    Ikon
+                    <select
+                      name="icon"
+                      defaultValue={String(modal.record?.icon || "Tag")}
+                    >
+                      {[
+                        "Tag",
+                        "Wallet",
+                        "Briefcase",
+                        "Book",
+                        "Car",
+                        "Coffee",
+                        "Home",
+                        "Star",
+                        "Heart",
+                        "ShoppingBag",
+                      ].map((i) => (
+                        <option key={i}>{i}</option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <>
+                  {modal.table !== "documents" && (
+                    <label>
+                      {modal.table === "projects"
+                        ? "Nama proyek"
+                        : "Deskripsi transaksi"}
+                      <input
+                        name="title"
+                        required
+                        maxLength={200}
+                        defaultValue={String(modal.record?.title || "")}
+                      />
+                    </label>
+                  )}
+                  <label>
+                    {modal.table === "projects" ? "Status" : "Kategori"}
+                    <select
+                      name={
+                        modal.table === "projects" ? "status_id" : "category_id"
+                      }
+                      required
+                      defaultValue={String(
+                        modal.record?.category_id ||
+                          modal.record?.status_id ||
+                          "",
+                      )}
+                    >
+                      <option value="" disabled>
+                        Pilih kategori
+                      </option>
+                      {data.categories
+                        .filter((c) =>
+                          modal.table === "projects"
+                            ? c.kind === "status"
+                            : modal.table === "documents"
+                              ? c.kind === "document"
+                              : ["income", "expense"].includes(c.kind),
+                        )
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                            {modal.table === "transactions"
+                              ? ` · ${c.kind === "income" ? "Masuk" : "Keluar"}`
+                              : ""}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  {modal.table === "transactions" && (
+                    <>
+                      <label>
+                        Akun
+                        <select
+                          name="account_id"
+                          required
+                          defaultValue={String(
+                            modal.record?.account_id ||
+                              extended.accounts[0]?.id ||
+                              "",
+                          )}
+                        >
+                          <option value="" disabled>
+                            Pilih akun
+                          </option>
+                          {extended.accounts.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {String(a.name)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Jumlah (Rp)
+                        <input
+                          name="amount"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          max="99999999999999"
+                          required
+                          defaultValue={String(modal.record?.amount || "")}
+                        />
+                      </label>
+                      <label>
+                        Tanggal
+                        <input
+                          name="date"
+                          type="date"
+                          required
+                          defaultValue={String(modal.record?.date || today())}
+                        />
+                      </label>
+                    </>
+                  )}
+                  {modal.table === "projects" && (
+                    <>
+                      <label>
+                        Progres (%)
+                        <input
+                          name="progress"
+                          type="number"
+                          min="0"
+                          max="100"
+                          required
+                          defaultValue={String(modal.record?.progress || 0)}
+                        />
+                      </label>
+                      <label>
+                        Tenggat waktu
+                        <input
+                          name="deadline"
+                          type="date"
+                          required
+                          defaultValue={String(
+                            modal.record?.deadline || today(),
+                          )}
+                        />
+                      </label>
+                      <label className="checkbox">
+                        <input
+                          type="checkbox"
+                          name="is_mwb"
+                          defaultChecked={!!modal.record?.is_mwb}
+                        />{" "}
+                        Major Work Block (MWB)
+                      </label>
+                    </>
+                  )}
+                  {modal.table === "documents" && (
+                    <label>
+                      File
+                      <input
+                        name="file"
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,text/plain,.docx,.xlsx"
+                        required
+                      />
+                    </label>
+                  )}
+                </>
+              )}
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button className="primary" disabled={busy}>
+                {busy ? "Menyimpan…" : "Simpan"}
+                <ArrowRight size={16} />
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+function Empty({ text }: { text: string }) {
+  return (
+    <div className="empty">
+      <Orbit size={30} />
+      <p>{text}</p>
+    </div>
+  );
+}

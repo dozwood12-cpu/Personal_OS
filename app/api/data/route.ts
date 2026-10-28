@@ -1,17 +1,138 @@
-import { authorized, db, failure, sameOrigin } from '@/lib/server';
-export async function GET(){if(!await authorized())return new Response('Unauthorized',{status:401});try{const client=db();const names=['categories','transactions','projects','documents'];const results=await Promise.all(names.map(n=>client.from(n).select('*')));for(const r of results)if(r.error)throw new Error(r.error.message);return Response.json(Object.fromEntries(names.map((n,i)=>[n,results[i].data])),{headers:{'Cache-Control':'no-store'}});}catch(e){return failure(e);}}
-export async function POST(req:Request){if(!sameOrigin(req)||!await authorized())return new Response('Forbidden',{status:403});try{
- const {table,action,id,data}=await req.json();if(!['categories','transactions','projects','documents'].includes(table))throw new Error('Tabel tidak valid');
- const client=db();if(action==='delete'){if(typeof id!=='string')throw new Error('ID diperlukan');if(table==='documents'){const {data:doc,error}=await client.from(table).select('path').eq('id',id).single();if(error)throw error;const r=await client.storage.from('vault').remove([doc.path]);if(r.error)throw r.error;}
- const r=await client.from(table).delete().eq('id',id);if(r.error)throw r.error;return Response.json({ok:true});}
- if(!['create','update'].includes(action)||table==='documents')throw new Error('Aksi tidak valid');
- const title=String(data.title||'').trim();let clean:Record<string,unknown>;
- if(table==='categories'){if(!['income','expense','status','document'].includes(data.kind)||!String(data.name||'').trim())throw new Error('Kategori tidak valid');clean={name:String(data.name).trim().slice(0,80),kind:data.kind};}
- else{if(!title||title.length>200)throw new Error('Nama wajib diisi (maksimal 200 karakter)');
- const categoryId=table==='projects'?data.status_id:data.category_id;const r=await client.from('categories').select('kind').eq('id',categoryId).single();if(r.error)throw r.error;
- if(table==='projects'){if(r.data.kind!=='status'||!Number.isInteger(Number(data.progress))||Number(data.progress)<0||Number(data.progress)>100||!/^\d{4}-\d{2}-\d{2}$/.test(data.deadline))throw new Error('Data proyek tidak valid');clean={title,status_id:categoryId,progress:Number(data.progress),deadline:data.deadline,is_mwb:!!data.is_mwb};}
- else{if(!['income','expense'].includes(r.data.kind)||!Number.isFinite(Number(data.amount))||Number(data.amount)<=0||!/^\d{4}-\d{2}-\d{2}$/.test(data.date))throw new Error('Data transaksi tidak valid');clean={title,category_id:categoryId,amount:Number(data.amount),date:data.date};}}
- if(action==='update'&&typeof id!=='string')throw new Error('ID diperlukan');
- if(table==='categories'&&action==='update'){const old=await client.from('categories').select('kind').eq('id',id).single();if(old.error)throw old.error;if(old.data.kind!==clean.kind)throw new Error('Jenis kategori tidak dapat diubah. Buat kategori baru.');}
- const result=action==='update'?await client.from(table).update(clean).eq('id',id):await client.from(table).insert(clean);if(result.error)throw result.error;return Response.json({ok:true});
- }catch(e){return failure(e);}}
+import { authorized, db, failure, sameOrigin } from "@/lib/server";
+import { tables } from "@/lib/model";
+import { inputs, type Editable } from "@/lib/validation";
+import { z } from "zod";
+async function allRows(table: string) {
+  const c = db();
+  const rows = [];
+  let start = 0;
+  while (true) {
+    const r = await c
+      .from(table)
+      .select("*")
+      .order(table === "app_settings" ? "key" : "id")
+      .range(start, start + 999);
+    if (r.error)
+      throw new Error(
+        `${table}: ${r.error.message}. Pastikan migrasi 202610290001 sudah dijalankan.`,
+      );
+    rows.push(...r.data);
+    if (r.data.length < 1000) break;
+    start += 1000;
+  }
+  return rows;
+}
+export async function GET() {
+  if (!(await authorized()))
+    return new Response("Unauthorized", { status: 401 });
+  try {
+    const data = await Promise.all(
+      tables.map((t) =>
+        t === "activity_log"
+          ? db()
+              .from(t)
+              .select("*")
+              .order("created_at", { ascending: false })
+              .limit(100)
+              .then((r) => {
+                if (r.error) throw r.error;
+                return r.data;
+              })
+          : allRows(t),
+      ),
+    );
+    return Response.json(
+      Object.fromEntries(tables.map((t, i) => [t, data[i]])),
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (e) {
+    return failure(e);
+  }
+}
+export async function POST(req: Request) {
+  if (!sameOrigin(req) || !(await authorized()))
+    return new Response("Forbidden", { status: 403 });
+  try {
+    const { table, action, id, data } = await req.json();
+    if (!Object.hasOwn(inputs, table))
+      throw new Error("Tabel tidak dapat diedit");
+    const c = db();
+    if (action === "delete") {
+      z.uuid().parse(id);
+      if (table === "documents") {
+        const mark = await c
+          .from(table)
+          .update({ deletion_state: "pending" })
+          .eq("id", id);
+        if (mark.error) throw mark.error;
+        const doc = await c
+          .from(table)
+          .select("path")
+          .eq("id", id)
+          .maybeSingle();
+        if (doc.error) throw doc.error;
+        if (doc.data) {
+          const r = await c.storage.from("vault").remove([doc.data.path]);
+          if (r.error)
+            throw new Error(
+              "Penghapusan ditunda; coba hapus lagi. " + r.error.message,
+            );
+        }
+      }
+      const r = await c.from(table).delete().eq("id", id);
+      if (r.error) throw r.error;
+      return Response.json({ ok: true });
+    }
+    if (
+      !["create", "update"].includes(action) ||
+      (table === "documents" && action === "create") ||
+      (table === "focus_sessions" && action !== "create")
+    )
+      throw new Error("Aksi tidak valid");
+    const value = inputs[table as Editable].parse(data) as Record<
+      string,
+      unknown
+    >;
+    const kind =
+      table === "projects"
+        ? "status"
+        : table === "documents"
+          ? "document"
+          : table === "budgets"
+            ? "expense"
+            : ["transactions", "recurring_rules"].includes(table)
+              ? "finance"
+              : null;
+    if (kind) {
+      const r = await c
+        .from("categories")
+        .select("kind")
+        .eq("id", value.category_id || value.status_id)
+        .single();
+      if (r.error) throw r.error;
+      if (
+        kind === "finance"
+          ? !["income", "expense"].includes(r.data.kind)
+          : r.data.kind !== kind
+      )
+        throw new Error("Jenis kategori tidak sesuai");
+    }
+    if (action === "update") {
+      z.uuid().parse(id);
+      if (table === "categories") {
+        const old = await c.from(table).select("kind").eq("id", id).single();
+        if (old.error) throw old.error;
+        if (old.data.kind !== value.kind)
+          throw new Error("Jenis kategori tidak dapat diubah");
+      }
+    }
+    const r =
+      action === "update"
+        ? await c.from(table).update(value).eq("id", id)
+        : await c.from(table).insert(value);
+    if (r.error) throw r.error;
+    return Response.json({ ok: true });
+  } catch (e) {
+    return failure(e);
+  }
+}
