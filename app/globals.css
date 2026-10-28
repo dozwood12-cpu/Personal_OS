@@ -1366,3 +1366,15 @@ input[type="range"] {
     padding: 6px;
   }
 }
+:root[data-mode="light"] .brand svg,
+:root[data-mode="light"] nav button,
+:root[data-mode="light"] .topbar b,
+:root[data-mode="light"] .day,
+:root[data-mode="light"] .day-label { color: #3f3f46; }
+:root[data-mode="light"] .login .brand svg,
+:root[data-mode="light"] .sidebar:has(> .artwork) .brand svg { color: #ffffff; }
+:root[data-mode="light"] .bars > div + div,
+:root[data-mode="light"] .legend span + span i { background: #a1a1aa; }
+:root[data-mode="light"] .legend i { background: #3f3f46; }
+:root[data-mode="light"] .danger { color: #b91c1c; }
+:root[data-mode="light"] .warning { color: #92400e; }
