@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 const base=process.env.TEST_BASE_URL||'http://localhost:3000';
 const post=(path,data,extra={})=>fetch(base+path,{method:'POST',headers:{Origin:base,'Content-Type':'application/json',...extra},body:JSON.stringify(data)});
-let r=await fetch(base);assert.equal(r.status,200);assert.match(await r.text(),/Make space for/);
+let r=await fetch(base);assert.equal(r.status,200);assert.match(await r.text(),/<h1>Login<\/h1>/);
 r=await fetch(base+'/api/data');assert.equal(r.status,401);
 r=await fetch(base+'/api/files?id=invalid');assert.equal(r.status,401);
 r=await post('/api/login',{username:'admin',password:'wrong'});assert.equal(r.status,401);
@@ -9,7 +9,7 @@ r=await fetch(base+'/api/login',{method:'POST',headers:{Origin:'https://other.ex
 r=await post('/api/login',{username:process.env.ADMIN_USERNAME||'admin',password:process.env.ADMIN_PASSWORD||'admin'});assert.equal(r.status,200);
 const cookie=r.headers.get('set-cookie');assert.ok(cookie);assert.match(cookie,/HttpOnly/);assert.match(cookie,/SameSite=Strict/);assert.match(cookie,/Secure/);
 const session=cookie.split(';')[0];
-r=await fetch(base,{headers:{Cookie:session}});assert.equal(r.status,200);assert.match(await r.text(),/Your life/);
+r=await fetch(base,{headers:{Cookie:session}});assert.equal(r.status,200);assert.match(await r.text(),/Jurnal Keuangan/);
 r=await fetch(base+'/api/data',{headers:{Cookie:'os_session=invalid'}});assert.equal(r.status,401);
 r=await fetch(base+'/api/data',{method:'POST',headers:{Cookie:session,Origin:'https://other.example','Content-Type':'application/json'},body:'{}'});assert.equal(r.status,403);
 r=await post('/api/logout',{}, {Cookie:session});assert.equal(r.status,200);assert.match(r.headers.get('set-cookie'),/Max-Age=0/);

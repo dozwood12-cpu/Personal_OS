@@ -85,3 +85,7 @@ Smoke test autentikasi: jalankan `node tests/auth-smoke.mjs` saat production ser
 ## 6. Environment cloud
 
 Gunakan checkout yang sudah ada; task sudah terisolasi, tidak perlu membuat worktree. Jalankan `npm ci` untuk menyiapkan dependensi. Saat task baru dimulai, baca README dan konfigurasi private environment sebelum menjalankan server. Jangan mengasumsikan proses server hidup setelah snapshot dipulihkan.
+
+## Desain UI monokrom
+
+Token Tailwind, referensi visual, dan penggunaan font Coolvetica lokal dijelaskan di [docs/DESIGN.md](docs/DESIGN.md). File font dari ZIP berlisensi desktop tidak didistribusikan sebagai webfont.
