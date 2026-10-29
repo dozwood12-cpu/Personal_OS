@@ -8,8 +8,8 @@
   --surface-raised: #111110;
   --surface-hover: #191917;
   --text: #f4f1ea;
-  --text-secondary: #b4b0a7;
-  --text-muted: #98948c;
+  --text-secondary: #cfcbc2;
+  --text-muted: #b3afa6;
   --line: #262624;
   --line-strong: #4a4843;
   --line-soft: #1b1b19;
@@ -24,7 +24,7 @@
   --chart-gray-3: #68645d;
   --chart-gray-4: #44413b;
   --photo-text: #f4f1ea;
-  --photo-scrim: #000000b8;
+  --photo-scrim: #080808ed;
   --glass: #0a0a0ae8;
   --glass-line: #f4f1ea30;
   --overlay: #000000ad;
@@ -39,7 +39,7 @@
   --radius: 16px;
   --radius-control: 8px;
   --radius-chip: 4px;
-  --sidebar-width: 240px;
+  --sidebar-width: 264px;
   --body-font:
     var(--font-zen), "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
   --display-font: var(--font-mincho), "Yu Mincho", Georgia, serif;
@@ -82,7 +82,7 @@ body {
   margin: 0;
   background: var(--canvas);
   color: var(--text);
-  font: 400 16px/1.65 var(--body-font);
+  font: 500 16px/1.65 var(--body-font);
   -webkit-font-smoothing: antialiased;
 }
 ::selection {
@@ -112,7 +112,8 @@ button {
   border-radius: var(--radius-control);
   background: transparent;
   color: var(--text);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.45;
   cursor: pointer;
 }
@@ -148,13 +149,13 @@ a:hover {
 button svg,
 a svg {
   flex-shrink: 0;
-  stroke-width: 1.3;
+  stroke-width: 1.6;
 }
 .primary {
   background: var(--button);
   color: var(--button-text);
   border-color: var(--button);
-  font-weight: 500;
+  font-weight: 700;
   box-shadow: none;
   white-space: normal;
 }
@@ -348,7 +349,7 @@ p {
 h1,
 h2 {
   font-family: var(--display-font);
-  font-weight: 400;
+  font-weight: 700;
 }
 h1 {
   font-size: clamp(36px, 3.5vw, 52px);
@@ -364,7 +365,7 @@ h2 {
 h3 {
   font-size: 18px;
   line-height: 1.5;
-  font-weight: 500;
+  font-weight: 700;
 }
 small {
   font-size: 13px;
@@ -399,7 +400,7 @@ small {
 }
 .brand .muted {
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--text-muted);
 }
@@ -419,7 +420,8 @@ nav button {
   color: var(--text-secondary);
   padding: 12px 8px;
   text-align: left;
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 700;
   min-height: 48px;
   border-radius: 4px;
 }
@@ -501,7 +503,7 @@ nav small {
   color: var(--text-muted);
 }
 .topbar b {
-  font-weight: 400;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 .topbar div span {
@@ -656,6 +658,56 @@ nav small {
 .toolbar label {
   margin: 0;
 }
+.journal-filters {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.5fr) repeat(
+      2,
+      minmax(144px, 1fr)
+    ) repeat(2, minmax(160px, 1fr));
+  align-items: end;
+}
+.journal-filters > label {
+  min-width: 0;
+  font-weight: 700;
+}
+.journal-filters input:not(.field-proxy),
+.journal-filters select,
+.journal-filters .date-trigger {
+  width: 100%;
+  height: 52px;
+  min-height: 52px;
+  font-weight: 500;
+}
+@media (max-width: 1400px) {
+  .journal-filters {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .journal-filters > label {
+    grid-column: span 2;
+  }
+  .journal-filters > label:nth-last-child(-n + 2) {
+    grid-column: span 3;
+  }
+}
+@media (max-width: 760px) {
+  .journal-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .journal-filters > label {
+    grid-column: auto;
+  }
+  .journal-filters > label:first-child {
+    grid-column: 1/-1;
+  }
+  .journal-filters > label:nth-last-child(-n + 2) {
+    grid-column: auto;
+  }
+  .journal-filters .date-trigger {
+    gap: 8px;
+    padding-inline: 10px;
+    font-size: 15px;
+  }
+}
 .toolbar select,
 .toolbar input {
   max-width: 100%;
@@ -716,9 +768,9 @@ table {
   text-align: left;
 }
 th {
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.12em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
   padding: 16px 12px;
@@ -914,7 +966,7 @@ tbody tr:hover {
   margin: 0;
 }
 .category-row b {
-  font-weight: 400;
+  font-weight: 500;
 }
 .progress {
   display: flex;
@@ -1046,7 +1098,7 @@ td progress {
 }
 .calendar-heading h3 {
   text-align: center;
-  font-weight: 400;
+  font-weight: 500;
 }
 .calendar {
   display: grid;
@@ -1198,7 +1250,7 @@ td progress {
 .empty p {
   font-size: 14px;
   line-height: 1.8;
-  font-weight: 400;
+  font-weight: 500;
 }
 .empty-state .primary {
   margin-top: 0;
@@ -1459,6 +1511,19 @@ td progress {
   color: var(--photo-text);
   border-radius: var(--radius-control);
 }
+.sidebar:has(> .artwork) nav button,
+.sidebar:has(> .artwork) .brand {
+  padding-inline: 12px;
+  border: 1px solid var(--glass-line);
+}
+.sidebar:has(> .artwork) nav button.active {
+  background: #080808;
+  border-color: #f4f1ea70;
+}
+.sidebar:has(> .artwork) .profile {
+  padding: 16px 8px;
+  border: 1px solid var(--glass-line);
+}
 .sidebar:has(> .artwork) small {
   color: var(--photo-text);
   border-color: var(--glass-line);
@@ -1539,7 +1604,7 @@ td progress {
 }
 .personalize-grid > .panel > h3 {
   font-size: 20px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .personalize-grid > .panel > .muted {
   font-size: 13px;
@@ -1674,7 +1739,7 @@ td progress {
 .personalize-controls summary::after {
   content: "+";
   font-size: 18px;
-  font-weight: 400;
+  font-weight: 500;
 }
 .personalize-controls details[open] > summary::after {
   content: "−";
@@ -1729,7 +1794,7 @@ td progress {
   border-color: var(--line-strong);
   color: var(--text);
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 500;
   text-transform: none;
   letter-spacing: normal;
 }
@@ -1999,7 +2064,7 @@ td progress {
 }
 @media (max-width: 1200px) {
   :root {
-    --sidebar-width: 216px;
+    --sidebar-width: 248px;
   }
   .sidebar {
     padding-inline: 16px;

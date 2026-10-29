@@ -302,34 +302,43 @@ export default function Finance({
           </button>
         </div>
       </div>
-      <div className="toolbar">
-        <input
-          aria-label="Cari transaksi dan kategori"
-          placeholder="Cari transaksi / kategori"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <select
-          aria-label="Jenis transaksi"
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
-        >
-          <option value="">Semua jenis</option>
-          <option value="income">Pemasukan</option>
-          <option value="expense">Pengeluaran</option>
-        </select>
-        <select
-          aria-label="Filter akun"
-          value={account}
-          onChange={(e) => setAccount(e.target.value)}
-        >
-          <option value="">Semua akun</option>
-          {data.accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {String(a.name)}
-            </option>
-          ))}
-        </select>
+      <div className="toolbar journal-filters">
+        <label>
+          Pencarian
+          <input
+            aria-label="Cari transaksi dan kategori"
+            placeholder="Cari transaksi / kategori"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </label>
+        <label>
+          Jenis
+          <select
+            aria-label="Jenis transaksi"
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+          >
+            <option value="">Semua jenis</option>
+            <option value="income">Pemasukan</option>
+            <option value="expense">Pengeluaran</option>
+          </select>
+        </label>
+        <label>
+          Akun
+          <select
+            aria-label="Filter akun"
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+          >
+            <option value="">Semua akun</option>
+            {data.accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {String(a.name)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           Dari
           <DateField

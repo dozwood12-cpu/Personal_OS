@@ -23,10 +23,20 @@ const zen = localFont({
   display: "swap",
 });
 const mincho = localFont({
-  src: "../node_modules/@fontsource/shippori-mincho/files/shippori-mincho-latin-400-normal.woff2",
+  src: [
+    {
+      path: "../node_modules/@fontsource/shippori-mincho/files/shippori-mincho-latin-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../node_modules/@fontsource/shippori-mincho/files/shippori-mincho-latin-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-mincho",
   display: "swap",
-  weight: "400",
 });
 export const metadata: Metadata = {
   title: "ORBIT — Personal OS",
