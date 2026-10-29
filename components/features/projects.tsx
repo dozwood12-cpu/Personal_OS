@@ -1,4 +1,7 @@
 "use client";
+import { Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { formatDate } from "@/components/ui/fields";
 import { useEffect, useState } from "react";
 import {
   command,
@@ -166,16 +169,16 @@ export default function Projects({
               <tbody>
                 {rows.map((p) => (
                   <tr key={p.id}>
-                    <td>
+                    <td data-label="Proyek">
                       {String(p.title)}{" "}
                       {!!p.is_mwb && <span className="tag">MWB</span>}
                     </td>
-                    <td>
+                    <td data-label="Status">
                       {String(
                         data.categories.find((c) => c.id === p.status_id)?.name,
                       )}
                     </td>
-                    <td>
+                    <td data-label="Progres">
                       <progress max={100} value={Number(p.progress)} />{" "}
                       {String(p.progress)}%
                     </td>
@@ -187,9 +190,9 @@ export default function Projects({
                           : ""
                       }
                     >
-                      {String(p.deadline)}
+                      {formatDate(p.deadline)}
                     </td>
-                    <td>
+                    <td data-label="Tenggat">
                       <Actions
                         edit={() => setForm({ table: "projects", record: p })}
                         remove={() => remove("projects", p)}
@@ -199,7 +202,7 @@ export default function Projects({
                 ))}
               </tbody>
             </table>
-            {!rows.length && <p className="empty">Tidak ada proyek</p>}
+            {!rows.length && <EmptyState message="Tidak ada proyek" />}
           </div>
         ) : (
           <>
@@ -239,52 +242,54 @@ export default function Projects({
             <p className="muted">
               Seret proyek ke tanggal lain, atau klik untuk mengubah tenggat.
             </p>
-            <div className="calendar">
-              {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
-                <div className="day-label" key={d}>
-                  {d}
-                </div>
-              ))}
-              {days.map((d) => (
-                <div
-                  className={"day " + (iso(d) === dateToday() ? "today" : "")}
-                  key={iso(d)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const p = data.projects.find(
-                      (p) => p.id === e.dataTransfer.getData("text/plain"),
-                    );
-                    if (p)
-                      void run(async () => {
-                        await writeData(
-                          "projects",
-                          "update",
-                          { ...p, deadline: iso(d) },
-                          p.id,
-                        );
-                      });
-                  }}
-                >
-                  <span>{d.getDate()}</span>
-                  {rows
-                    .filter((p) => p.deadline === iso(d))
-                    .map((p) => (
-                      <button
-                        key={p.id}
-                        draggable={!busy}
-                        onDragStart={(e) =>
-                          e.dataTransfer.setData("text/plain", p.id)
-                        }
-                        onClick={() =>
-                          setForm({ table: "projects", record: p })
-                        }
-                      >
-                        {String(p.title)}
-                      </button>
-                    ))}
-                </div>
-              ))}
+            <div className="calendar-scroll">
+              <div className="calendar">
+                {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
+                  <div className="day-label" key={d}>
+                    {d}
+                  </div>
+                ))}
+                {days.map((d) => (
+                  <div
+                    className={"day " + (iso(d) === dateToday() ? "today" : "")}
+                    key={iso(d)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const p = data.projects.find(
+                        (p) => p.id === e.dataTransfer.getData("text/plain"),
+                      );
+                      if (p)
+                        void run(async () => {
+                          await writeData(
+                            "projects",
+                            "update",
+                            { ...p, deadline: iso(d) },
+                            p.id,
+                          );
+                        });
+                    }}
+                  >
+                    <span>{d.getDate()}</span>
+                    {rows
+                      .filter((p) => p.deadline === iso(d))
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          draggable={!busy}
+                          onDragStart={(e) =>
+                            e.dataTransfer.setData("text/plain", p.id)
+                          }
+                          onClick={() =>
+                            setForm({ table: "projects", record: p })
+                          }
+                        >
+                          {String(p.title)}
+                        </button>
+                      ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}
@@ -292,12 +297,7 @@ export default function Projects({
       <section className="panel">
         <div className="section-head">
           <h3>Major Work Blocks</h3>
-          <button
-            className="primary"
-            onClick={() => setForm({ table: "mwbs" })}
-          >
-            Tambah MWB
-          </button>
+          <button onClick={() => setForm({ table: "mwbs" })}>Tambah MWB</button>
         </div>
         <div className="settings-grid">
           {data.mwbs.map((m) => {
@@ -327,7 +327,7 @@ export default function Projects({
                     data.projects.find((p) => p.id === m.project_id)?.title ||
                       "Mandiri",
                   )}{" "}
-                  · {String(m.deadline)}
+                  · {formatDate(m.deadline)}
                 </p>
                 <label className="checkbox">
                   <input
@@ -372,6 +372,9 @@ export default function Projects({
                   {sessions.length} sesi · {tasks.filter((t) => t.done).length}/
                   {tasks.length} subtask
                 </p>
+                {!tasks.length && (
+                  <EmptyState message="Belum ada langkah kecil di sini." />
+                )}
                 {tasks.map((t) => (
                   <div className="category-row" key={t.id}>
                     <label className="checkbox">
@@ -391,7 +394,14 @@ export default function Projects({
                       />
                       {String(t.title)}
                     </label>
-                    <button onClick={() => remove("subtasks", t)}>Hapus</button>
+                    <button
+                      className="icon-button"
+                      aria-label={`Hapus subtask ${String(t.title)}`}
+                      title="Hapus subtask"
+                      onClick={() => remove("subtasks", t)}
+                    >
+                      <Trash2 size={17} strokeWidth={1.3} />
+                    </button>
                   </div>
                 ))}
                 <button
@@ -409,7 +419,7 @@ export default function Projects({
             );
           })}
         </div>
-        {!data.mwbs.length && <p className="empty">Belum ada MWB</p>}
+        {!data.mwbs.length && <EmptyState message="Belum ada MWB" />}
       </section>
       {form && (
         <RecordForm

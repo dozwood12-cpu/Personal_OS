@@ -1,4 +1,12 @@
 "use client";
+import {
+  DateField,
+  CurrencyField,
+  FileDrop,
+  formatDate,
+} from "@/components/ui/fields";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Pencil, Trash2, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { writeData, dateToday, type Dataset, type Row } from "@/lib/model";
 export function Dialog({
@@ -22,7 +30,7 @@ export function Dialog({
         <div className="section-head">
           <h3>{title}</h3>
           <button aria-label="Tutup" onClick={close}>
-            ✕
+            <X size={18} strokeWidth={1.3} />
           </button>
         </div>
         {children}
@@ -287,6 +295,31 @@ export function RecordForm({
                     val === undefined ? field.key === "active" : !!val
                   }
                 />
+              ) : field.type === "date" || field.type === "month" ? (
+                <DateField
+                  aria-label={field.label}
+                  name={field.key}
+                  type={field.type}
+                  required={!field.optional}
+                  defaultValue={
+                    val !== undefined
+                      ? String(val)
+                      : field.type === "month"
+                        ? dateToday().slice(0, 7)
+                        : field.optional
+                          ? ""
+                          : dateToday()
+                  }
+                />
+              ) : field.type === "number" && field.key !== "progress" ? (
+                <CurrencyField
+                  aria-label={field.label}
+                  name={field.key}
+                  required={!field.optional}
+                  min={field.min}
+                  max={field.max}
+                  defaultValue={val !== undefined ? String(val) : "0"}
+                />
               ) : (
                 <input
                   aria-label={field.label}
@@ -334,11 +367,23 @@ export function Actions({
 }) {
   return (
     <div className="row-actions">
-      <button aria-label="Edit" onClick={edit}>
-        Edit
+      <button
+        type="button"
+        className="icon-button"
+        title="Edit"
+        aria-label="Edit"
+        onClick={edit}
+      >
+        <Pencil size={17} strokeWidth={1.3} />
       </button>
-      <button aria-label="Hapus" onClick={remove}>
-        Hapus
+      <button
+        type="button"
+        className="icon-button"
+        title="Hapus"
+        aria-label="Hapus"
+        onClick={remove}
+      >
+        <Trash2 size={17} strokeWidth={1.3} />
       </button>
     </div>
   );

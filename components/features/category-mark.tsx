@@ -27,11 +27,7 @@ export function CategoryMark({ category }: { category?: Row }) {
   const Icon = icons[String(category?.icon) as keyof typeof icons] || Tag;
   return (
     <span className="category-mark">
-      <Icon
-        aria-hidden="true"
-        size={14}
-        style={{ color: String(category?.color || "#a1a1aa") }}
-      />
+      <Icon aria-hidden="true" size={14} strokeWidth={1.25} />
       <span>{String(category?.name || "")}</span>
     </span>
   );

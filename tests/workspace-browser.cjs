@@ -287,19 +287,17 @@ const requests = [];
     await page.getByRole("dialog").waitFor({ state: "hidden" });
     assert.equal(data.recurring_rules.length, 1);
     await page.getByRole("button", { name: "Impor CSV", exact: true }).click();
-    await page
-      .getByLabel("File CSV", { exact: true })
-      .setInputFiles({
-        name: "bank.csv",
-        mimeType: "text/csv",
-        buffer: Buffer.from(
-          "tanggal,deskripsi,jumlah\n" +
-            date +
-            ",Transaksi impor,150000\n" +
-            date +
-            ",Transaksi impor,150000",
-        ),
-      });
+    await page.getByLabel("File CSV", { exact: true }).setInputFiles({
+      name: "bank.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "tanggal,deskripsi,jumlah\n" +
+          date +
+          ",Transaksi impor,150000\n" +
+          date +
+          ",Transaksi impor,150000",
+      ),
+    });
     await page.getByLabel("Kolom title").selectOption("deskripsi");
     await page.getByLabel("Kolom date").selectOption("tanggal");
     await page.getByLabel("Kolom amount").selectOption("jumlah");
@@ -345,7 +343,17 @@ const requests = [];
       .click();
     await page.getByText("Sertifikat.pdf", { exact: true }).waitFor();
     assert.equal(
-      await page.getByText("Kedaluwarsa " + date, { exact: true }).count(),
+      await page
+        .getByText(
+          "Kedaluwarsa " +
+            new Date(date + "T12:00:00").toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+          { exact: true },
+        )
+        .count(),
       1,
     );
     await page.getByRole("button", { name: "Pratinjau", exact: true }).click();
@@ -355,46 +363,52 @@ const requests = [];
       .getByRole("button", { name: "Personalize", exact: true })
       .click();
     await page.getByLabel("Nama preset").fill("Monokrom");
-    await page
-      .getByLabel("Tambah gambar", { exact: true })
-      .setInputFiles({
-        name: "user.png",
-        mimeType: "image/png",
-        buffer: pixels,
-      });
+    await page.getByLabel("Tambah gambar", { exact: true }).setInputFiles({
+      name: "user.png",
+      mimeType: "image/png",
+      buffer: pixels,
+    });
     await page.locator(".image-strip img").waitFor();
-    await page.getByLabel("Animasi", { exact: true }).selectOption("crossfade");
     await page
-      .getByLabel("Tambah gambar", { exact: true })
-      .setInputFiles({
-        name: "second.png",
-        mimeType: "image/png",
-        buffer: pixels,
+      .locator("details")
+      .filter({
+        has: page.locator("summary").getByText("Gerak", { exact: true }),
+      })
+      .evaluate((e) => {
+        e.open = true;
       });
+    await page.getByLabel("Animasi", { exact: true }).selectOption("crossfade");
+    await page.getByLabel("Tambah gambar", { exact: true }).setInputFiles({
+      name: "second.png",
+      mimeType: "image/png",
+      buffer: pixels,
+    });
     await page.waitForFunction(
       () => document.querySelectorAll(".image-strip img").length === 2,
     );
-    await page
-      .getByRole("button", { name: "Simpan & aktifkan", exact: true })
-      .click();
+    await page.getByRole("button", { name: "Terapkan", exact: true }).click();
     await page.getByText("Tema diaktifkan", { exact: true }).waitFor();
     assert.equal(rows.filter((r) => r.slot === "login").length, 2);
     await page
       .locator(".slot-list button")
       .filter({ hasText: "Avatar profil" })
       .click();
-    await page.getByLabel("Animasi", { exact: true }).selectOption("glow");
     await page
-      .getByLabel("Tambah gambar", { exact: true })
-      .setInputFiles({
-        name: "avatar.png",
-        mimeType: "image/png",
-        buffer: pixels,
+      .locator("details")
+      .filter({
+        has: page.locator("summary").getByText("Gerak", { exact: true }),
+      })
+      .evaluate((e) => {
+        e.open = true;
       });
+    await page.getByLabel("Animasi", { exact: true }).selectOption("glow");
+    await page.getByLabel("Tambah gambar", { exact: true }).setInputFiles({
+      name: "avatar.png",
+      mimeType: "image/png",
+      buffer: pixels,
+    });
     await page.locator(".image-strip img").waitFor();
-    await page
-      .getByRole("button", { name: "Simpan & aktifkan", exact: true })
-      .click();
+    await page.getByRole("button", { name: "Terapkan", exact: true }).click();
     await page.getByText("Tema diaktifkan", { exact: true }).waitFor();
     await page.locator(".avatar .artwork").waitFor();
     await page.getByRole("button", { name: "Ganti mode warna" }).click();

@@ -1,4 +1,11 @@
 "use client";
+import {
+  DateField,
+  CurrencyField,
+  FileDrop,
+  formatDate,
+} from "@/components/ui/fields";
+import { EmptyState } from "@/components/ui/empty-state";
 import { uploadFile } from "@/lib/uploads";
 import { CategoryMark } from "@/components/features/category-mark";
 import Finance from "@/components/features/finance";
@@ -144,6 +151,17 @@ function WorkspaceContent({
     onAuth(auth);
     if (auth) void load();
   }, [auth]);
+  useEffect(() => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const effect = document.querySelector(".content")?.animate(
+      [
+        { opacity: 0.35, transform: "translateY(6px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 320, easing: "cubic-bezier(.2,.6,.25,1)" },
+    );
+    return () => effect?.cancel();
+  }, [page]);
   const extended = data as unknown as Dataset;
   const [widgets, setWidgets] = useState(defaultWidgets);
   useEffect(() => {
@@ -309,15 +327,21 @@ function WorkspaceContent({
   };
   const actions = (table: string, r: { id: string }) => (
     <div className="row-actions">
-      <button aria-label="Edit" onClick={() => edit(table, r)}>
-        <Pencil size={14} />
+      <button
+        className="icon-button"
+        title="Edit"
+        aria-label="Edit"
+        onClick={() => edit(table, r)}
+      >
+        <Pencil size={17} strokeWidth={1.3} />
       </button>
       <button
         disabled={busy}
         aria-label="Hapus"
+        className="icon-button"
         onClick={() => remove(table, r.id)}
       >
-        <Trash2 size={14} />
+        <Trash2 size={17} strokeWidth={1.3} />
       </button>
     </div>
   );
@@ -412,7 +436,7 @@ function WorkspaceContent({
             <div>
               <h1>{navigation[page].name}</h1>
             </div>
-            {page !== 4 && (
+            {page !== 4 && page !== 1 && page !== 2 && (
               <button className="primary" onClick={add}>
                 <Plus size={17} />
                 {
@@ -493,6 +517,9 @@ function WorkspaceContent({
                         <Plus size={17} />
                       </button>
                     </div>
+                    {!data.categories.some((c) => c.kind === kind) && (
+                      <EmptyState message="Belum ada kategori di bagian ini." />
+                    )}
                     {data.categories
                       .filter((c) => c.kind === kind)
                       .map((c) => (
@@ -665,7 +692,8 @@ function WorkspaceContent({
                       </label>
                       <label>
                         Jumlah (Rp)
-                        <input
+                        <CurrencyField
+                          aria-label="Jumlah (Rp)"
                           name="amount"
                           type="number"
                           min="0.01"
@@ -677,7 +705,7 @@ function WorkspaceContent({
                       </label>
                       <label>
                         Tanggal
-                        <input
+                        <DateField
                           name="date"
                           type="date"
                           required
@@ -701,7 +729,7 @@ function WorkspaceContent({
                       </label>
                       <label>
                         Tenggat waktu
-                        <input
+                        <DateField
                           name="deadline"
                           type="date"
                           required
@@ -723,7 +751,8 @@ function WorkspaceContent({
                   {modal.table === "documents" && (
                     <label>
                       File
-                      <input
+                      <FileDrop
+                        aria-label="File"
                         name="file"
                         type="file"
                         accept="application/pdf,image/jpeg,image/png,text/plain,.docx,.xlsx"
@@ -750,10 +779,5 @@ function WorkspaceContent({
   );
 }
 function Empty({ text }: { text: string }) {
-  return (
-    <div className="empty">
-      <Orbit size={30} />
-      <p>{text}</p>
-    </div>
-  );
+  return <EmptyState message={text} />;
 }

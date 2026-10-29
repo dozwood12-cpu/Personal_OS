@@ -1,4 +1,11 @@
 "use client";
+import {
+  DateField,
+  CurrencyField,
+  FileDrop,
+  formatDate,
+} from "@/components/ui/fields";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useEffect, useState } from "react";
 import {
   accountBalance,
@@ -36,7 +43,7 @@ export function Count({ value }: { value: number }) {
     let frame = 0;
     const start = performance.now();
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / 650);
+      const t = Math.min(1, (now - start) / 320);
       setN(value * (1 - (1 - t) ** 3));
       if (t < 1) frame = requestAnimationFrame(tick);
     };
@@ -97,7 +104,7 @@ export default function Finance({
     .map((c, i) => {
       const start = offset;
       offset += (c.total / total) * 100;
-      return `${c.color || ["#fafafa", "#a1a1aa", "#71717a", "#52525b"][i % 4]} ${start}% ${offset}%`;
+      return `${i === 0 ? "var(--shu)" : `var(--chart-gray-${((i - 1) % 4) + 1})`} ${start}% ${offset}%`;
     })
     .join(",");
   useEffect(() => setPage(1), [q, kind, from, to, account]);
@@ -209,7 +216,12 @@ export default function Finance({
           <div className="cash-chart">
             {chart.map((d) => (
               <div className="chart-col" key={d.key}>
-                <div className="bars">
+                <div
+                  className="bars"
+                  tabIndex={0}
+                  aria-label={`${d.key}: pemasukan ${currency(d.income)}, pengeluaran ${currency(d.expense)}`}
+                  data-tooltip={`${formatDate(d.key)} · Masuk ${currency(d.income)} / Keluar ${currency(d.expense)}`}
+                >
                   <div
                     title={`${d.key}: ${currency(d.income)}`}
                     style={{ height: `${(d.income / max) * 100}%` }}
@@ -240,21 +252,19 @@ export default function Finance({
         <div
           className="donut"
           style={{
-            background: total ? `conic-gradient(${gradient})` : "#27272a",
+            background: total ? `conic-gradient(${gradient})` : "var(--line)",
           }}
         >
           <div>{currency(total)}</div>
         </div>
         {donut.map((c) => (
           <div className="category-row" key={c.id}>
-            <span style={{ color: String(c.color || "inherit") }}>
-              {String(c.name)}
-            </span>
+            <span>{String(c.name)}</span>
             <span>{currency(c.total)}</span>
           </div>
         ))}
         {!total && (
-          <p className="empty">Belum ada pengeluaran pada filter ini</p>
+          <EmptyState message="Belum ada pengeluaran pada filter ini" />
         )}
       </section>
     </div>
@@ -262,6 +272,9 @@ export default function Finance({
   const deadlines = (
     <section className="panel">
       <h3>Tenggat proyek</h3>
+      {!data.projects.some((p) => Number(p.progress) < 100) && (
+        <EmptyState message="Belum ada tenggat untuk ditampilkan." />
+      )}
       {data.projects
         .filter((p) => Number(p.progress) < 100)
         .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline)))
@@ -270,7 +283,7 @@ export default function Finance({
           <div className="category-row" key={p.id}>
             <b>{String(p.title)}</b>
             <span>
-              {String(p.deadline)} · {String(p.progress)}%
+              {formatDate(p.deadline)} · {String(p.progress)}%
             </span>
           </div>
         ))}
@@ -319,7 +332,8 @@ export default function Finance({
         </select>
         <label>
           Dari
-          <input
+          <DateField
+            aria-label="Dari tanggal"
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
@@ -327,7 +341,8 @@ export default function Finance({
         </label>
         <label>
           Sampai
-          <input
+          <DateField
+            aria-label="Sampai tanggal"
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
@@ -349,24 +364,24 @@ export default function Finance({
           <tbody>
             {rows.slice((current - 1) * 15, current * 15).map((t) => (
               <tr key={t.id}>
-                <td>{String(t.title)}</td>
-                <td>
+                <td data-label="Transaksi">{String(t.title)}</td>
+                <td data-label="Kategori">
                   <CategoryMark category={cats.get(String(t.category_id))} />
                 </td>
-                <td>
+                <td data-label="Akun">
                   {String(
                     data.accounts.find((a) => a.id === t.account_id)?.name ||
                       "",
                   )}
                 </td>
-                <td>{String(t.date)}</td>
-                <td>
+                <td data-label="Tanggal">{formatDate(t.date)}</td>
+                <td data-label="Jumlah">
                   {cats.get(String(t.category_id))?.kind === "income"
                     ? "+"
                     : "−"}
                   {currency(Number(t.amount))}
                 </td>
-                <td>
+                <td data-label="Tindakan">
                   <Actions
                     edit={() => editTransaction(t)}
                     remove={() => removeTransaction(t)}
@@ -377,7 +392,7 @@ export default function Finance({
           </tbody>
         </table>
       </div>
-      {!rows.length && <p className="empty">Tidak ada transaksi</p>}
+      {!rows.length && <EmptyState message="Tidak ada transaksi" />}
       <div className="pagination">
         <button disabled={current <= 1} onClick={() => setPage((v) => v - 1)}>
           Sebelumnya
@@ -428,20 +443,17 @@ export default function Finance({
       {tab === "accounts" && (
         <>
           <div className="toolbar">
-            <button
-              className="primary"
-              onClick={() => setForm({ table: "accounts" })}
-            >
+            <button onClick={() => setForm({ table: "accounts" })}>
               Tambah akun
             </button>
-            <button
-              className="primary"
-              onClick={() => setForm({ table: "transfers" })}
-            >
+            <button onClick={() => setForm({ table: "transfers" })}>
               Transfer antar akun
             </button>
           </div>
-          <div className="settings-grid">
+          <div className="settings-grid account-cards">
+            {!data.accounts.length && (
+              <EmptyState message="Belum ada akun yang dicatat." />
+            )}
             {data.accounts.map((a) => (
               <section className="panel" key={a.id}>
                 <h3>
@@ -460,10 +472,13 @@ export default function Finance({
           </div>
           <section className="panel">
             <h3>Transfer · Tidak dihitung sebagai pemasukan/pengeluaran</h3>
+            {!data.transfers.length && (
+              <EmptyState message="Belum ada perpindahan antar akun." />
+            )}
             {data.transfers.map((t) => (
               <div className="category-row" key={t.id}>
                 <span>
-                  {String(t.date)} ·{" "}
+                  {formatDate(t.date)} ·{" "}
                   {String(
                     data.accounts.find((a) => a.id === t.from_account)?.name,
                   )}{" "}
@@ -484,24 +499,27 @@ export default function Finance({
       )}
       {["budgets", "recurring_rules", "savings_goals"].includes(tab) && (
         <>
-          <button className="primary" onClick={() => setForm({ table: tab })}>
-            Tambah
-          </button>
-          {tab === "recurring_rules" && (
-            <button
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  const r = await command("recurring");
-                  await refresh();
-                  alert(`${r.result} transaksi jatuh tempo dicatat`);
-                })
-              }
-            >
-              Catat semua yang jatuh tempo
-            </button>
-          )}
+          <div className="toolbar action-toolbar">
+            <button onClick={() => setForm({ table: tab })}>Tambah</button>
+            {tab === "recurring_rules" && (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    const r = await command("recurring");
+                    await refresh();
+                    alert(`${r.result} transaksi jatuh tempo dicatat`);
+                  })
+                }
+              >
+                Catat semua yang jatuh tempo
+              </button>
+            )}
+          </div>
           <div className="settings-grid finance-cards">
+            {!data[tab].length && (
+              <EmptyState message="Belum ada rencana yang dicatat." />
+            )}
             {data[tab].map((r) => {
               const spent =
                   tab === "budgets"
@@ -526,7 +544,8 @@ export default function Finance({
                             : ""
                         }
                       >
-                        {String(r.next_due)} · {r.active ? "Aktif" : "Nonaktif"}
+                        {formatDate(r.next_due)} ·{" "}
+                        {r.active ? "Aktif" : "Nonaktif"}
                       </p>
                     </>
                   ) : (
@@ -632,7 +651,8 @@ function BankImport({
       </p>
       <label>
         File CSV
-        <input
+        <FileDrop
+          aria-label="File CSV"
           type="file"
           accept=".csv,text/csv"
           onChange={(e) => {
@@ -729,10 +749,10 @@ function BankImport({
           <tbody>
             {preview.slice(0, 100).map((r) => (
               <tr key={r.index}>
-                <td>{r.date}</td>
-                <td>{r.title}</td>
-                <td>{currency(r.amount || 0)}</td>
-                <td>
+                <td data-label="Tanggal">{formatDate(r.date)}</td>
+                <td data-label="Deskripsi">{r.title}</td>
+                <td data-label="Jumlah">{currency(r.amount || 0)}</td>
+                <td data-label="Validasi">
                   {!r.valid
                     ? "Data belum valid"
                     : r.duplicate

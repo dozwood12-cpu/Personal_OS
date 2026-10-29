@@ -1,4 +1,6 @@
 "use client";
+import { EmptyState } from "@/components/ui/empty-state";
+import { formatDate } from "@/components/ui/fields";
 import { useState } from "react";
 import { command, requestJson, type Dataset } from "@/lib/model";
 export default function ExtraSettings({
@@ -109,36 +111,38 @@ export default function ExtraSettings({
           Satu ZIP berisi data JSON, dokumen vault, dan gambar Personalize.
           Tidak menyertakan kredensial.
         </p>
-        <button
-          disabled={busy}
-          onClick={() =>
-            void run(async () => {
-              const r = await fetch("/api/export");
-              if (!r.ok) {
-                const d = await r.json();
-                throw new Error(d.error);
-              }
-              const u = URL.createObjectURL(await r.blob());
-              const a = document.createElement("a");
-              a.href = u;
-              a.download = "orbit-workspace.zip";
-              a.click();
-              setTimeout(() => URL.revokeObjectURL(u), 1000);
-            })
-          }
-        >
-          Ekspor ZIP
-        </button>
-        <button
-          disabled={busy}
-          onClick={() =>
-            void run(async () => {
-              await command("retry_deletions");
-            })
-          }
-        >
-          Ulangi hapus dokumen tertunda
-        </button>
+        <div className="toolbar action-toolbar">
+          <button
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const r = await fetch("/api/export");
+                if (!r.ok) {
+                  const d = await r.json();
+                  throw new Error(d.error);
+                }
+                const u = URL.createObjectURL(await r.blob());
+                const a = document.createElement("a");
+                a.href = u;
+                a.download = "orbit-workspace.zip";
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(u), 1000);
+              })
+            }
+          >
+            Ekspor ZIP
+          </button>
+          <button
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                await command("retry_deletions");
+              })
+            }
+          >
+            Ulangi hapus dokumen tertunda
+          </button>
+        </div>
       </section>
       {error && (
         <p className="error" role="alert">
@@ -148,6 +152,9 @@ export default function ExtraSettings({
       <section className="panel">
         <h3>Aktivitas terbaru</h3>
         <div className="activity-list">
+          {!data.activity_log.length && (
+            <EmptyState message="Aktivitas akan tercatat di sini." />
+          )}
           {data.activity_log.map((a) => (
             <div className="category-row" key={a.id}>
               <span>

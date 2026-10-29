@@ -1,4 +1,12 @@
 "use client";
+import {
+  DateField,
+  CurrencyField,
+  FileDrop,
+  formatDate,
+} from "@/components/ui/fields";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Trash2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { uploadFile } from "@/lib/uploads";
 import {
@@ -129,7 +137,7 @@ export default function PersonalizeEditor() {
               })
             }
           >
-            Simpan preset
+            Simpan
           </button>
           <button
             disabled={busy}
@@ -151,7 +159,7 @@ export default function PersonalizeEditor() {
               })
             }
           >
-            Simpan & aktifkan
+            Terapkan
           </button>
           <button
             disabled={!id || busy}
@@ -163,7 +171,7 @@ export default function PersonalizeEditor() {
               })
             }
           >
-            Aktifkan tersimpan
+            Aktifkan
           </button>
           <button
             disabled={!id || busy}
@@ -179,7 +187,7 @@ export default function PersonalizeEditor() {
                 });
             }}
           >
-            Hapus preset
+            Hapus tema
           </button>
           <button
             disabled={busy}
@@ -195,7 +203,7 @@ export default function PersonalizeEditor() {
               })
             }
           >
-            Reset ke default
+            Reset
           </button>
         </div>
         {error && (
@@ -233,7 +241,11 @@ export default function PersonalizeEditor() {
             }}
           >
             <Artwork config={c} login={slot === "login"} />
-            {slot === "login" && (
+            {!c.images.length && (
+              <EmptyState message="Pilih gambar untuk ruang ini." />
+            )}
+            <span className="ratio-label">{slotInfo[slot].ratio}</span>
+            {slot === "login" && c.images.length > 0 && (
               <div className="preview-login-card">
                 Login
                 <input
@@ -257,6 +269,10 @@ export default function PersonalizeEditor() {
               <div key={image.path}>
                 <img alt={`Gambar ${i + 1}`} loading="lazy" src={image.url} />
                 <button
+                  type="button"
+                  className="thumbnail-remove icon-button"
+                  aria-label={`Hapus gambar ${i + 1}`}
+                  title={`Hapus gambar ${i + 1}`}
                   disabled={busy}
                   onClick={() =>
                     setDraft((d) => ({
@@ -268,11 +284,12 @@ export default function PersonalizeEditor() {
                     }))
                   }
                 >
-                  Hapus {i + 1}
+                  <Trash2 size={16} strokeWidth={1.3} />
                 </button>
-                <label>
-                  Ganti
-                  <input
+                <label className="thumbnail-replace">
+                  <FileDrop
+                    aria-label="Ganti gambar"
+                    compact
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     disabled={busy}
@@ -301,7 +318,8 @@ export default function PersonalizeEditor() {
           </div>
           <label>
             Tambah gambar
-            <input
+            <FileDrop
+              aria-label="Tambah gambar"
               type="file"
               disabled={busy || c.images.length >= slotInfo[slot].max}
               accept="image/jpeg,image/png,image/webp"
@@ -320,60 +338,93 @@ export default function PersonalizeEditor() {
               }}
             />
           </label>
-          <div className="control-grid">
+          <div className="personalize-controls">
             {(
               [
-                ["x", "Posisi horizontal", 0, 100, 1],
-                ["y", "Posisi vertikal", 0, 100, 1],
-                ["zoom", "Zoom", 1, 2.5, 0.05],
-                ["overlay", "Overlay gelap", 0, 0.95, 0.05],
-                ["blur", "Blur (px)", 0, 20, 1],
-                ["opacity", "Opasitas", 0, 1, 0.05],
-                ["speed", "Kecepatan / interval (detik)", 3, 30, 1],
-                ["intensity", "Intensitas", 0, 1, 0.05],
+                [
+                  "Posisi",
+                  [
+                    ["x", "Posisi horizontal", 0, 100, 1],
+                    ["y", "Posisi vertikal", 0, 100, 1],
+                    ["zoom", "Zoom", 1, 2.5, 0.05],
+                  ],
+                ],
+                [
+                  "Efek",
+                  [
+                    ["overlay", "Overlay gelap", 0, 0.95, 0.05],
+                    ["blur", "Blur (px)", 0, 20, 1],
+                    ["opacity", "Opasitas", 0, 1, 0.05],
+                  ],
+                ],
+                [
+                  "Gerak",
+                  [
+                    ["speed", "Kecepatan / interval (detik)", 3, 30, 1],
+                    ["intensity", "Intensitas", 0, 1, 0.05],
+                  ],
+                ],
               ] as const
-            ).map(([key, label, min, max, step]) => (
-              <label key={key}>
-                {label} <output>{c[key]}</output>
-                <input
-                  aria-label={label}
-                  type="range"
-                  min={min}
-                  max={max}
-                  step={step}
-                  value={c[key]}
-                  onChange={(e) => patch({ [key]: Number(e.target.value) })}
-                />
-              </label>
-            ))}
-            <label>
-              Animasi
-              <select
-                aria-label="Animasi"
-                value={c.animation}
-                onChange={(e) =>
-                  patch({ animation: e.target.value as Visual["animation"] })
-                }
-              >
-                {animationOptions
-                  .filter((a) => a !== "glow" || slot === "avatar")
-                  .map((a) => (
-                    <option key={a} value={a}>
-                      {
-                        {
-                          none: "Nonaktif",
-                          kenburns: "Ken Burns",
-                          crossfade: "Crossfade slideshow",
-                          parallax: "Parallax",
-                          drift: "Drift",
-                          glow: "Glow pulse",
-                          entrance: "Fade / blur-to-sharp",
-                        }[a]
-                      }
-                    </option>
+            ).map(([section, controls]) => (
+              <details key={section} open={section === "Posisi"}>
+                <summary>{section}</summary>
+                <div className="control-grid">
+                  {controls.map(([key, label, min, max, step]) => (
+                    <label className="slider-field" key={key}>
+                      <span>
+                        {label}
+                        <output>{c[key]}</output>
+                      </span>
+                      <input
+                        aria-label={label}
+                        type="range"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={c[key]}
+                        onChange={(e) =>
+                          patch({ [key]: Number(e.target.value) })
+                        }
+                      />
+                    </label>
                   ))}
-              </select>
-            </label>
+                  {section === "Gerak" && (
+                    <>
+                      <label>
+                        Animasi
+                        <select
+                          aria-label="Animasi"
+                          value={c.animation}
+                          onChange={(e) =>
+                            patch({
+                              animation: e.target.value as Visual["animation"],
+                            })
+                          }
+                        >
+                          {animationOptions
+                            .filter((a) => a !== "glow" || slot === "avatar")
+                            .map((a) => (
+                              <option key={a} value={a}>
+                                {
+                                  {
+                                    none: "Nonaktif",
+                                    kenburns: "Ken Burns",
+                                    crossfade: "Crossfade slideshow",
+                                    parallax: "Parallax",
+                                    drift: "Drift",
+                                    glow: "Glow pulse",
+                                    entrance: "Fade / blur-to-sharp",
+                                  }[a]
+                                }
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                    </>
+                  )}
+                </div>
+              </details>
+            ))}
           </div>
           <button
             disabled={busy}
@@ -391,7 +442,7 @@ export default function PersonalizeEditor() {
               })
             }
           >
-            Batalkan perubahan
+            Batal
           </button>
         </div>
       </div>

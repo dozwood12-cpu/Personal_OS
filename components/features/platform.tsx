@@ -1,4 +1,6 @@
 "use client";
+import { EmptyState } from "@/components/ui/empty-state";
+import { formatDate } from "@/components/ui/fields";
 import { useEffect, useState } from "react";
 import { command, dateToday, type Dataset } from "@/lib/model";
 import { Dialog } from "./forms";
@@ -200,7 +202,7 @@ export default function Platform({
                 <small>{r.type}</small>
               </button>
             ))}
-            {!results.length && <p className="empty">Tidak ada hasil</p>}
+            {!results.length && <EmptyState message="Tidak ada hasil" />}
           </div>
         </Dialog>
       )}

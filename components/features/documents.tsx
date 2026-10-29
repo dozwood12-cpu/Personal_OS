@@ -1,4 +1,6 @@
 "use client";
+import { EmptyState } from "@/components/ui/empty-state";
+import { formatDate } from "@/components/ui/fields";
 import { useState } from "react";
 import {
   command,
@@ -135,7 +137,7 @@ export default function Documents({
                   {String(d.expires_on) <= dateToday()
                     ? "Kedaluwarsa"
                     : "Berlaku hingga"}{" "}
-                  {String(d.expires_on)}
+                  {formatDate(d.expires_on)}
                 </p>
               )}
               {d.deletion_state === "pending" ? (
@@ -155,7 +157,7 @@ export default function Documents({
           );
         })}
       </div>
-      {!rows.length && <p className="empty">Belum ada dokumen</p>}
+      {!rows.length && <EmptyState message="Belum ada dokumen" />}
       {edit && (
         <RecordForm
           table="documents"
