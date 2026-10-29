@@ -80,7 +80,12 @@ export const inputs = {
     deadline: date,
     done: bool.default(false),
   }),
-  subtasks: z.object({ title, mwb_id: id, done: bool.default(false) }),
+  subtasks: z.object({
+    title,
+    mwb_id: id,
+    deadline: date.nullable().optional(),
+    done: bool.default(false),
+  }),
   focus_sessions: z.object({ mwb_id: id }),
   documents: z.object({
     title,

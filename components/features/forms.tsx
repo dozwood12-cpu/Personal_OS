@@ -163,6 +163,7 @@ export function fieldsFor(table: string, data: Dataset): Field[] {
             label: String(m.title),
           })),
         },
+        { ...date, label: "Tanggal subtask (opsional)", optional: true },
         { key: "done", label: "Selesai", type: "checkbox" },
       ];
     case "projects":

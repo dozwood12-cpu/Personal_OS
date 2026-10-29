@@ -130,7 +130,17 @@ export async function POST(req: Request) {
       action === "update"
         ? await c.from(table).update(value).eq("id", id)
         : await c.from(table).insert(value);
-    if (r.error) throw r.error;
+    if (r.error) {
+      if (
+        table === "subtasks" &&
+        ["42703", "PGRST204"].includes(r.error.code) &&
+        r.error.message.includes("deadline")
+      )
+        throw new Error(
+          "Tanggal subtask belum tersedia. Jalankan migrasi 202610290002_subtask_deadlines.sql di Supabase SQL Editor.",
+        );
+      throw r.error;
+    }
     return Response.json({ ok: true });
   } catch (e) {
     return failure(e);

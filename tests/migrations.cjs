@@ -5,6 +5,10 @@ const migration = fs.readFileSync(
   "supabase/migrations/202610290001_personal_os.sql",
   "utf8",
 );
+const deadlinesMigration = fs.readFileSync(
+  "supabase/migrations/202610290002_subtask_deadlines.sql",
+  "utf8",
+);
 async function setup() {
   const db = new PGlite();
   await db.exec(
@@ -21,6 +25,8 @@ async function setup() {
       .n,
     1,
   );
+  await fresh.exec(deadlinesMigration);
+  await fresh.exec(deadlinesMigration);
   await fresh.close();
   const db = await setup();
   await db.exec(fs.readFileSync("tests/fixtures/legacy-schema.sql", "utf8"));
@@ -187,6 +193,39 @@ async function setup() {
     (await db.query("select count(*)::int n from activity_log")).rows[0].n > 0,
   );
   const m = (await db.query("select id from mwbs limit 1")).rows[0].id;
+  const legacyTask = (
+    await db.query(
+      "insert into subtasks(mwb_id,title) values($1,'Ancien') returning id",
+      [m],
+    )
+  ).rows[0].id;
+  await db.exec(deadlinesMigration);
+  await db.exec(deadlinesMigration);
+  assert.equal(
+    (await db.query("select deadline from subtasks where id=$1", [legacyTask]))
+      .rows[0].deadline,
+    null,
+  );
+  await db.query("update subtasks set deadline='2026-11-07' where id=$1", [
+    legacyTask,
+  ]);
+  assert.equal(
+    (
+      await db.query("select deadline::text from subtasks where id=$1", [
+        legacyTask,
+      ])
+    ).rows[0].deadline,
+    "2026-11-07",
+  );
+  await db.query("update subtasks set done=true where id=$1", [legacyTask]);
+  assert.equal(
+    (
+      await db.query("select deadline::text from subtasks where id=$1", [
+        legacyTask,
+      ])
+    ).rows[0].deadline,
+    "2026-11-07",
+  );
   const focus = (
     await db.query(
       "insert into focus_sessions(mwb_id,started_at) values($1,now()-interval '60 seconds') returning id",
@@ -214,7 +253,7 @@ async function setup() {
   );
   await db.close();
   console.log(
-    "PASS: fresh migration, legacy preservation, replay idempotence, account backfill, MWB backfill, status auto-complete, duplicate-safe import, monthly recurring clamp/idempotence, transfer exclusion, theme save/activation/reset, category bulk move and budget merge, activity, focus duration, isolated demo seed.",
+    "PASS: fresh migration, legacy preservation, replay idempotence, account backfill, MWB backfill, nullable subtask dates and migration replay preservation, status auto-complete, duplicate-safe import, monthly recurring clamp/idempotence, transfer exclusion, theme save/activation/reset, category bulk move and budget merge, activity, focus duration, isolated demo seed.",
   );
 })().catch((e) => {
   console.error(e);

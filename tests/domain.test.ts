@@ -140,3 +140,24 @@ test("Input menolak tanggal/nominal/progres/transfer tidak valid", () => {
     false,
   );
 });
+
+test("Tanggal subtask opsional, tetapi wajib valid ketika diisi", () => {
+  const task = {
+    title: "Interview",
+    mwb_id: "00000000-0000-4000-8000-000000000001",
+    done: false,
+  };
+  assert.equal(inputs.subtasks.safeParse(task).success, true);
+  assert.equal(
+    inputs.subtasks.safeParse({ ...task, deadline: null }).success,
+    true,
+  );
+  assert.equal(
+    inputs.subtasks.parse({ ...task, deadline: "2026-11-07" }).deadline,
+    "2026-11-07",
+  );
+  assert.equal(
+    inputs.subtasks.safeParse({ ...task, deadline: "2026-02-30" }).success,
+    false,
+  );
+});

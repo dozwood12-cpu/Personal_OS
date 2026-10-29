@@ -660,10 +660,9 @@ nav small {
 }
 .journal-filters {
   display: grid;
-  grid-template-columns: minmax(200px, 1.5fr) repeat(
-      2,
-      minmax(144px, 1fr)
-    ) repeat(2, minmax(160px, 1fr));
+  grid-template-columns:
+    minmax(200px, 1.5fr) repeat(2, minmax(144px, 1fr))
+    repeat(2, minmax(160px, 1fr));
   align-items: end;
 }
 .journal-filters > label {
@@ -2709,4 +2708,95 @@ progress.warning::-webkit-progress-value {
 }
 progress.warning::-moz-progress-bar {
   opacity: 0.65;
+}
+
+/* Project, MWB and subtask share the same table/calendar schedule. */
+.work-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.work-title > .tag {
+  flex-shrink: 0;
+}
+.work-title b {
+  overflow-wrap: anywhere;
+}
+.work-context {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.work-mwbs .work-title {
+  border-left: 1px solid var(--line-strong);
+}
+.work-subtasks .work-title {
+  border-left: 1px solid var(--line);
+}
+.calendar .day .calendar-work {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.calendar-work small {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.calendar-work span {
+  overflow-wrap: anywhere;
+}
+.calendar-work.work-done {
+  border-style: dashed;
+}
+.mwb-subtask {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.mwb-subtask > .checkbox {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.subtask-schedule {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+.subtask-schedule .date-field {
+  width: 180px;
+}
+.subtask-schedule .date-trigger {
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+@media (max-width: 760px) {
+  .work-row td:first-child {
+    display: block;
+  }
+  .work-row td:first-child::before {
+    display: none;
+  }
+  .work-row .work-title {
+    padding-inline-start: 0 !important;
+  }
+  .mwb-subtask {
+    align-items: flex-start;
+  }
+  .subtask-schedule {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+  .subtask-schedule .date-field {
+    flex: 1;
+    width: auto;
+  }
 }

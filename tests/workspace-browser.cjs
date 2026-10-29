@@ -317,6 +317,101 @@ const requests = [];
     await page
       .getByRole("button", { name: "Project & MWBs", exact: true })
       .click();
+    // A dated MWB subtask is one record shared by the card, stack table and calendar.
+    await page
+      .getByRole("button", { name: "Tambah subtask", exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByLabel("Nama", { exact: true })
+      .fill("Interview FGD");
+    await page
+      .getByRole("button", { name: "Tanggal subtask (opsional)", exact: true })
+      .click();
+    await page.locator(`.date-popover [data-date="${date}"]`).click();
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    const task = data.subtasks.find((t) => t.title === "Interview FGD");
+    assert.equal(task.deadline, date);
+    const taskKey = `subtasks:${task.id}`;
+    await page.locator(`tr[data-work-key="${taskKey}"]`).waitFor();
+    const stackKeys = await page
+      .locator("tr[data-work-key]")
+      .evaluateAll((es) => es.map((e) => e.dataset.workKey));
+    assert.ok(
+      stackKeys.indexOf(`projects:${u(30)}`) <
+        stackKeys.indexOf(`mwbs:${u(50)}`),
+    );
+    assert.ok(stackKeys.indexOf(`mwbs:${u(50)}`) < stackKeys.indexOf(taskKey));
+    await page.getByRole("button", { name: "Bulanan", exact: true }).click();
+    await page
+      .locator(`.day[data-date="${date}"] button[data-work-key="${taskKey}"]`)
+      .waitFor();
+    await page.getByRole("button", { name: "Mingguan", exact: true }).click();
+    await page.locator(`.day button[data-work-key="${taskKey}"]`).waitFor();
+    const targetDate = await page
+      .locator(".day")
+      .last()
+      .getAttribute("data-date");
+    await page
+      .locator(".day")
+      .last()
+      .evaluate((el, key) => {
+        const transfer = new DataTransfer();
+        transfer.setData("text/plain", key);
+        el.dispatchEvent(
+          new DragEvent("drop", { bubbles: true, dataTransfer: transfer }),
+        );
+      }, taskKey);
+    await page.waitForFunction(
+      ({ id, date }) =>
+        document.querySelector(
+          `.day[data-date="${date}"] button[data-work-key="subtasks:${id}"]`,
+        ),
+      { id: task.id, date: targetDate },
+    );
+    assert.equal(task.deadline, targetDate);
+    const cardTask = page
+      .locator(".mwb-subtask")
+      .filter({ hasText: "Interview FGD" });
+    await cardTask.getByRole("checkbox").click();
+    await page.waitForFunction(
+      (key) =>
+        document
+          .querySelector(`.day button[data-work-key="${key}"]`)
+          .classList.contains("work-done"),
+      taskKey,
+    );
+    assert.equal(task.done, true);
+    assert.equal(task.deadline, targetDate);
+    await page
+      .getByRole("button", {
+        name: "Tanggal subtask Interview FGD",
+        exact: true,
+      })
+      .click();
+    await page.getByRole("button", { name: "Kosongkan", exact: true }).click();
+    await page
+      .locator(`.day button[data-work-key="${taskKey}"]`)
+      .waitFor({ state: "detached" });
+    assert.equal(task.deadline, null);
+    await page.getByRole("button", { name: "Tabel", exact: true }).click();
+    assert.match(
+      await page.locator(`tr[data-work-key="${taskKey}"]`).innerText(),
+      /Belum dijadwalkan/,
+    );
+    await page.getByLabel("Cari proyek", { exact: true }).fill("Interview FGD");
+    assert.equal(await page.locator("tr[data-work-key]").count(), 3);
+    await page.getByLabel("Cari proyek", { exact: true }).fill("");
+    page.once("dialog", (d) => d.accept());
+    await cardTask.getByRole("button", { name: "Hapus", exact: true }).click();
+    await page
+      .locator(`tr[data-work-key="${taskKey}"]`)
+      .waitFor({ state: "detached" });
+    assert.equal(
+      data.subtasks.some((t) => t.id === task.id),
+      false,
+    );
     await page.getByRole("button", { name: "Mingguan", exact: true }).click();
     assert.equal(await page.locator(".day").count(), 7);
     await page
@@ -515,7 +610,7 @@ const requests = [];
     await context.setOffline(false);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS: actual login/session, mock-data pagination/search, 30-day/12-month charts, XLSX download, transfer form, weekly calendar/edit, focus start/stop, document expiry/preview, direct upload flow, slideshow/preset/avatar, light mode, global search, widget visibility, all five modules at 390/320px, reduced motion, active animation / hidden-tab pause, PWA manifest and offline fallback, logout with public login art.",
+      "PASS: actual login/session, mock-data pagination/search, 30-day/12-month charts, XLSX download, transfer form, dated subtask CRUD, hierarchical stacks, month/week sync, calendar drag reschedule, clear date, weekly calendar/edit, focus start/stop, document expiry/preview, direct upload flow, slideshow/preset/avatar, light mode, global search, widget visibility, all five modules at 390/320px, reduced motion, active animation / hidden-tab pause, PWA manifest and offline fallback, logout with public login art.",
     );
   } finally {
     await browser.close();

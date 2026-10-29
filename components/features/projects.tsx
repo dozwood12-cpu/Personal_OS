@@ -1,5 +1,6 @@
 "use client";
-import { Trash2 } from "lucide-react";
+import { DateField } from "@/components/ui/fields";
+import { filterWorkItems, stackWorkItems, workItems } from "@/lib/projects";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/components/ui/fields";
 import { useEffect, useState } from "react";
@@ -55,17 +56,8 @@ export default function Projects({
         await writeData(table, "delete", undefined, r.id);
       });
   }
-  const rows = data.projects
-    .filter(
-      (p) =>
-        String(p.title).toLowerCase().includes(q.toLowerCase()) &&
-        (!status || p.status_id === status),
-    )
-    .sort((a, b) =>
-      sort === "progress"
-        ? Number(b.progress) - Number(a.progress)
-        : String(a[sort]).localeCompare(String(b[sort])),
-    );
+  const items = filterWorkItems(workItems(data), q, status);
+  const rows = stackWorkItems(items, sort);
   const days: Date[] = [];
   if (view === "week") {
     const monday = new Date(anchor);
@@ -95,7 +87,7 @@ export default function Projects({
     <>
       <section className="panel">
         <div className="section-head">
-          <h3>Proyek · {data.projects.length}</h3>
+          <h3>Proyek & MWB · {rows.length}</h3>
           <div className="segmented">
             {[
               ["table", "Tabel"],
@@ -114,7 +106,7 @@ export default function Projects({
         </div>
         <div className="toolbar">
           <input
-            placeholder="Cari proyek"
+            placeholder="Cari proyek / MWB / subtask"
             aria-label="Cari proyek"
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -159,7 +151,7 @@ export default function Projects({
             <table>
               <thead>
                 <tr>
-                  <th>Proyek</th>
+                  <th>Proyek / MWB / Subtask</th>
                   <th>Status</th>
                   <th>Progres</th>
                   <th>Tenggat</th>
@@ -167,42 +159,68 @@ export default function Projects({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((p) => (
-                  <tr key={p.id}>
-                    <td data-label="Proyek">
-                      {String(p.title)}{" "}
-                      {!!p.is_mwb && <span className="tag">MWB</span>}
+                {rows.map((item) => (
+                  <tr
+                    key={item.key}
+                    data-work-key={item.key}
+                    className={`work-row work-${item.table}`}
+                  >
+                    <td data-label="Nama">
+                      <div
+                        className="work-title"
+                        style={{ paddingInlineStart: item.depth * 16 }}
+                      >
+                        <span className="tag">
+                          {item.table === "projects"
+                            ? "Proyek"
+                            : item.table === "mwbs"
+                              ? "MWB"
+                              : "Subtask"}
+                        </span>
+                        <div>
+                          <b>{String(item.record.title)}</b>
+                          {item.context && (
+                            <small className="muted work-context">
+                              {item.context}
+                            </small>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td data-label="Status">
-                      {String(
-                        data.categories.find((c) => c.id === p.status_id)?.name,
-                      )}
-                    </td>
+                    <td data-label="Status">{item.status}</td>
                     <td data-label="Progres">
-                      <progress max={100} value={Number(p.progress)} />{" "}
-                      {String(p.progress)}%
+                      <progress max={100} value={item.progress} />{" "}
+                      {item.progress}%
                     </td>
                     <td
+                      data-label="Tenggat"
                       className={
-                        String(p.deadline) < dateToday() &&
-                        Number(p.progress) < 100
+                        item.deadline &&
+                        item.deadline < dateToday() &&
+                        item.progress < 100
                           ? "warning"
                           : ""
                       }
                     >
-                      {formatDate(p.deadline)}
+                      {item.deadline
+                        ? formatDate(item.deadline)
+                        : "Belum dijadwalkan"}
                     </td>
-                    <td data-label="Tenggat">
+                    <td data-label="Aksi">
                       <Actions
-                        edit={() => setForm({ table: "projects", record: p })}
-                        remove={() => remove("projects", p)}
+                        edit={() =>
+                          setForm({ table: item.table, record: item.record })
+                        }
+                        remove={() => remove(item.table, item.record)}
                       />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {!rows.length && <EmptyState message="Tidak ada proyek" />}
+            {!rows.length && (
+              <EmptyState message="Belum ada proyek, MWB, atau subtask yang sesuai." />
+            )}
           </div>
         ) : (
           <>
@@ -240,7 +258,7 @@ export default function Projects({
               </button>
             </div>
             <p className="muted">
-              Seret proyek ke tanggal lain, atau klik untuk mengubah tenggat.
+              Seret jadwal ke tanggal lain, atau klik untuk mengedit.
             </p>
             <div className="calendar-scroll">
               <div className="calendar">
@@ -253,38 +271,58 @@ export default function Projects({
                   <div
                     className={"day " + (iso(d) === dateToday() ? "today" : "")}
                     key={iso(d)}
+                    data-date={iso(d)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
-                      const p = data.projects.find(
-                        (p) => p.id === e.dataTransfer.getData("text/plain"),
+                      const key = e.dataTransfer.getData("text/plain");
+                      const item = items.find(
+                        (item) =>
+                          item.key === key ||
+                          (item.table === "projects" && item.record.id === key),
                       );
-                      if (p)
+                      if (item)
                         void run(async () => {
                           await writeData(
-                            "projects",
+                            item.table,
                             "update",
-                            { ...p, deadline: iso(d) },
-                            p.id,
+                            { ...item.record, deadline: iso(d) },
+                            item.record.id,
                           );
                         });
                     }}
                   >
                     <span>{d.getDate()}</span>
-                    {rows
-                      .filter((p) => p.deadline === iso(d))
-                      .map((p) => (
+                    {items
+                      .filter((item) => item.deadline === iso(d))
+                      .sort((a, b) => a.key.localeCompare(b.key))
+                      .map((item) => (
                         <button
-                          key={p.id}
+                          key={item.key}
+                          data-work-key={item.key}
+                          className={`calendar-work ${item.progress === 100 ? "work-done" : ""}`}
+                          title={[item.record.title, item.context, item.status]
+                            .filter(Boolean)
+                            .join(" · ")}
                           draggable={!busy}
                           onDragStart={(e) =>
-                            e.dataTransfer.setData("text/plain", p.id)
+                            e.dataTransfer.setData("text/plain", item.key)
                           }
                           onClick={() =>
-                            setForm({ table: "projects", record: p })
+                            setForm({ table: item.table, record: item.record })
                           }
                         >
-                          {String(p.title)}
+                          <small>
+                            {item.table === "projects"
+                              ? "Proyek"
+                              : item.table === "mwbs"
+                                ? "MWB"
+                                : "Subtask"}
+                          </small>
+                          <span>{String(item.record.title)}</span>
+                          {item.table === "subtasks" && (
+                            <small>{item.context}</small>
+                          )}
                         </button>
                       ))}
                   </div>
@@ -376,7 +414,7 @@ export default function Projects({
                   <EmptyState message="Belum ada langkah kecil di sini." />
                 )}
                 {tasks.map((t) => (
-                  <div className="category-row" key={t.id}>
+                  <div className="category-row mwb-subtask" key={t.id}>
                     <label className="checkbox">
                       <input
                         type="checkbox"
@@ -394,14 +432,28 @@ export default function Projects({
                       />
                       {String(t.title)}
                     </label>
-                    <button
-                      className="icon-button"
-                      aria-label={`Hapus subtask ${String(t.title)}`}
-                      title="Hapus subtask"
-                      onClick={() => remove("subtasks", t)}
-                    >
-                      <Trash2 size={17} strokeWidth={1.3} />
-                    </button>
+                    <div className="subtask-schedule">
+                      <DateField
+                        aria-label={`Tanggal subtask ${String(t.title)}`}
+                        value={t.deadline ? String(t.deadline) : ""}
+                        disabled={busy}
+                        onChange={(e) => {
+                          const deadline = e.target.value || null;
+                          void run(async () => {
+                            await writeData(
+                              "subtasks",
+                              "update",
+                              { ...t, deadline },
+                              t.id,
+                            );
+                          });
+                        }}
+                      />
+                      <Actions
+                        edit={() => setForm({ table: "subtasks", record: t })}
+                        remove={() => remove("subtasks", t)}
+                      />
+                    </div>
                   </div>
                 ))}
                 <button

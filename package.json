@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx tests/domain.test.ts && node tests/migrations.cjs && node tests/login-report.mjs",
+    "test": "node --import tsx --test tests/domain.test.ts tests/projects.test.ts && node tests/migrations.cjs && node tests/login-report.mjs",
     "test:browser": "node tests/workspace-browser.cjs",
     "test:media": "node tests/media-api.cjs"
   },
