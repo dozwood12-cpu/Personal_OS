@@ -26,6 +26,7 @@ export default function VaultUpload({
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [limit, setLimit] = useState(defaultVaultConfig.max_upload_mb);
+  const [folder, setFolder] = useState("");
   const controller = useRef<AbortController | null>(null);
   useEffect(() => {
     try {
@@ -62,6 +63,7 @@ export default function VaultUpload({
     controller.current = new AbortController();
     try {
       await uploadVaultFile(file, category, {
+        folderId: folder || null,
         signal: controller.current.signal,
         resume: pending || undefined,
         onTicket: (p) => {
@@ -112,6 +114,22 @@ export default function VaultUpload({
           void save();
         }}
       >
+        <label>
+          Folder
+          <select
+            aria-label="Folder unggahan"
+            value={folder}
+            disabled={busy || !!pending}
+            onChange={(e) => setFolder(e.target.value)}
+          >
+            <option value="">Semua dokumen</option>
+            {(data.vault_folders || []).map((f) => (
+              <option key={f.id} value={f.id}>
+                {String(f.name)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           Kategori
           <select

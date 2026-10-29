@@ -4,6 +4,7 @@ import type { Row } from "@/lib/model";
 import { z } from "zod";
 import {
   connection,
+  verifyFolder,
   driveFile,
   driveRequest,
   ensureFolder,
@@ -129,7 +130,13 @@ export async function category(id: unknown) {
   return String(id);
 }
 export async function prepareUpload(
-  input: { name: unknown; type: unknown; size: unknown; category_id: unknown },
+  input: {
+    name: unknown;
+    type: unknown;
+    size: unknown;
+    category_id: unknown;
+    vault_folder_id?: unknown;
+  },
   origin: string,
 ) {
   const name = z.string().trim().min(1).max(200).parse(input.name),
@@ -152,8 +159,23 @@ export async function prepareUpload(
   let uploadUrl: string,
     drive_file_id: string | null = null,
     folder_id: string | null = null;
+  const localFolder = input.vault_folder_id
+    ? z.uuid().parse(input.vault_folder_id)
+    : null;
+  let chosenFolder: string | null = null;
+  if (localFolder) {
+    const f = await db()
+      .from("vault_folders")
+      .select("drive_folder_id")
+      .eq("id", localFolder)
+      .single();
+    if (f.error) throw new Error("Folder tidak ditemukan.");
+    chosenFolder = f.data.drive_folder_id;
+  }
   if (provider === "gdrive") {
-    const folder = await ensureFolder(conn);
+    const folder = chosenFolder
+      ? await verifyFolder(chosenFolder)
+      : await ensureFolder(conn);
     folder_id = folder.id;
     const upload = await startDriveUpload(
       name,
@@ -175,6 +197,7 @@ export async function prepareUpload(
       mime_type: mime,
       size,
       category_id,
+      ...(localFolder ? { vault_folder_id: localFolder } : {}),
       path,
       drive_file_id,
       folder_id,
@@ -247,16 +270,19 @@ export async function finishUpload(id: string) {
       );
   }
   const docId = crypto.randomUUID();
-  const r = await db().from("documents").insert({
-    id: docId,
-    title: t.name,
-    category_id: t.category_id,
-    path: t.path,
-    size: t.size,
-    storage_provider: t.provider,
-    drive_file_id: t.drive_file_id,
-    mime_type: t.mime_type,
-  });
+  const r = await db()
+    .from("documents")
+    .insert({
+      id: docId,
+      title: t.name,
+      category_id: t.category_id,
+      ...(t.vault_folder_id ? { vault_folder_id: t.vault_folder_id } : {}),
+      path: t.path,
+      size: t.size,
+      storage_provider: t.provider,
+      drive_file_id: t.drive_file_id,
+      mime_type: t.mime_type,
+    });
   if (r.error) {
     const retry = await db()
       .from("documents")

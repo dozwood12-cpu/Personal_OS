@@ -19,6 +19,7 @@ type Ticket = {
   mime_type: string;
 };
 export type UploadOptions = {
+  folderId?: string | null;
   signal?: AbortSignal;
   resume?: PendingUpload;
   onTicket?: (pending: PendingUpload) => void;
@@ -105,6 +106,7 @@ export async function uploadVaultFile(
         type: mime,
         size: file.size,
         category_id,
+        vault_folder_id: options.folderId || null,
       });
   const pending = {
     id: ticket.id,

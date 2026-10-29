@@ -2,7 +2,7 @@
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/components/ui/fields";
 import { useEffect, useState } from "react";
-import { command, dateToday, type Dataset } from "@/lib/model";
+import { requestJson, command, dateToday, type Dataset } from "@/lib/model";
 import { Dialog } from "./forms";
 export const defaultWidgets = ["summary", "cashflow", "deadlines", "journal"];
 export default function Platform({
@@ -114,7 +114,36 @@ export default function Platform({
       setError((e as Error).message);
     }
   }
+  const [studySearch, setStudySearch] = useState<any[]>([]);
+  useEffect(() => {
+    if (search)
+      void requestJson("/api/study")
+        .then((s) =>
+          setStudySearch([
+            ...s.annotations.map((a: any) => ({
+              ...a,
+              title: a.quote + " " + a.comment,
+              type: "Catatan PDF",
+              module: 5,
+            })),
+            ...s.notes.map((n: any) => ({
+              ...n,
+              title: n.summary,
+              type: "Ringkasan PDF",
+              module: 5,
+            })),
+            ...s.cards.map((c: any) => ({
+              ...c,
+              title: c.front + " " + c.back,
+              type: "Kartu PDF",
+              module: 5,
+            })),
+          ]),
+        )
+        .catch(() => {});
+  }, [search]);
   const results = [
+    ...studySearch,
     ...data.transactions.map((t) => ({ ...t, module: 0, type: "Transaksi" })),
     ...data.projects.map((t) => ({ ...t, module: 1, type: "Proyek" })),
     ...data.documents.map((t) => ({ ...t, module: 2, type: "Dokumen" })),
@@ -194,6 +223,11 @@ export default function Platform({
               <button
                 key={r.type + r.id}
                 onClick={() => {
+                  if (r.module === 5) {
+                    location.hash =
+                      "study=" + r.document_id + "&page=" + (r.page || 1);
+                    window.dispatchEvent(new Event("orbit-study"));
+                  }
                   navigate(r.module);
                   setSearch(false);
                 }}

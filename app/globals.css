@@ -2997,3 +2997,76 @@ progress.warning::-moz-progress-bar {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.study-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+}
+.study-paper {
+  overflow: auto;
+  max-height: 80vh;
+}
+.study-surface {
+  touch-action: none;
+  max-width: none;
+}
+.study-surface canvas {
+  display: block;
+}
+.study-mark {
+  position: absolute;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid;
+  overflow: hidden;
+  font-size: 12px;
+  border-radius: 0;
+}
+.study-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  background: var(--surface);
+  padding: 8px;
+}
+.study-toolbar input[type="number"] {
+  width: 80px;
+}
+.study-notes textarea,
+.study-notes > input {
+  width: 100%;
+  margin: 16px 0;
+}
+.study-notes {
+  overflow: auto;
+  max-height: 80vh;
+}
+.study-review {
+  min-height: 70vh;
+}
+.study-review h2 {
+  margin: 48px 0;
+}
+@media (max-width: 900px) {
+  .study-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .study-notes {
+    max-height: 50vh;
+  }
+  .study-toolbar {
+    position: static;
+  }
+  .study-paper {
+    padding: 8px;
+  }
+}
+
+.study-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

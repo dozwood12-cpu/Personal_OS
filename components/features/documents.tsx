@@ -1,9 +1,10 @@
 "use client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/components/ui/fields";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   command,
+  requestJson,
   dateToday,
   writeData,
   type Dataset,
@@ -25,12 +26,20 @@ export default function Documents({
     [edit, setEdit] = useState<Row | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [studyProgress, setStudyProgress] = useState<any[]>([]);
+  useEffect(() => {
+    void requestJson("/api/study")
+      .then((s) => setStudyProgress(s.progress))
+      .catch(() => {});
+  }, []);
+  const [folder, setFolder] = useState("");
   const rows = data.documents.filter(
     (d) =>
       `${d.title} ${((d.tags as string[]) || []).join(" ")}`
         .toLowerCase()
         .includes(q.toLowerCase()) &&
-      (!category || d.category_id === category),
+      (!category || d.category_id === category) &&
+      (!folder || d.vault_folder_id === folder),
   );
   async function remove(d: Row) {
     if (!confirm("Hapus dokumen ini?")) return;
@@ -58,6 +67,36 @@ export default function Documents({
         PDF, JPG, PNG, TXT, DOCX, XLSX · Batas ukuran mengikuti Settings
       </p>
       <div className="toolbar">
+        <select
+          aria-label="Folder Vault"
+          value={folder}
+          onChange={(e) => setFolder(e.target.value)}
+        >
+          <option value="">Semua folder</option>
+          {(data.vault_folders || []).map((f) => (
+            <option key={f.id} value={f.id}>
+              {String(f.name)}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={async () => {
+            const name = prompt("Nama folder");
+            if (!name) return;
+            try {
+              await requestJson("/api/vault-folders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, parent_id: folder || null }),
+              });
+              await refresh();
+            } catch (e) {
+              setError((e as Error).message);
+            }
+          }}
+        >
+          Buat folder
+        </button>
         <input
           placeholder="Cari nama / tag"
           aria-label="Cari dokumen"
@@ -112,6 +151,19 @@ export default function Documents({
                 {String(d.title).split(".").at(-1)?.toUpperCase()}
               </span>
               <h3>{String(d.title)}</h3>
+              {pdf &&
+                (() => {
+                  const p = studyProgress.find((p) => p.document_id === d.id);
+                  const percent = p?.total_pages
+                    ? Math.round((p.pages_read.length / p.total_pages) * 100)
+                    : 0;
+                  return (
+                    <div>
+                      <progress max={100} value={percent} />
+                      <small>{percent}% dibaca</small>
+                    </div>
+                  );
+                })()}
               <small className="muted">
                 {d.storage_provider === "gdrive" ? "Google Drive" : "Supabase"}
               </small>
@@ -152,6 +204,16 @@ export default function Documents({
                   <a className="download" href={"/api/files?id=" + d.id}>
                     Unduh
                   </a>
+                  {pdf && (
+                    <button
+                      onClick={() => {
+                        location.hash = "study=" + d.id;
+                        window.dispatchEvent(new Event("orbit-study"));
+                      }}
+                    >
+                      Belajar
+                    </button>
+                  )}
                   {(image || pdf) && (
                     <button onClick={() => setPreview(d)}>Pratinjau</button>
                   )}

@@ -123,6 +123,18 @@ async function setup() {
     ).rows[0].category_id,
     null,
   );
+  await fresh.exec(
+    fs.readFileSync(
+      "supabase/migrations/202610290004_folders_study.sql",
+      "utf8",
+    ),
+  );
+  await fresh.exec(
+    fs.readFileSync(
+      "supabase/migrations/202610290004_folders_study.sql",
+      "utf8",
+    ),
+  );
   await fresh.close();
   const db = await setup();
   await db.exec(fs.readFileSync("tests/fixtures/legacy-schema.sql", "utf8"));

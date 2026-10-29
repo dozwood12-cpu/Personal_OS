@@ -8,6 +8,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { uploadFile } from "@/lib/uploads";
 import { CategoryMark } from "@/components/features/category-mark";
+import Study from "@/components/features/study";
 import Finance from "@/components/features/finance";
 import Projects from "@/components/features/projects";
 import Documents from "@/components/features/documents";
@@ -97,6 +98,7 @@ const navigation = [
   { name: "Arsip Dokumen", icon: FolderLock },
   { name: "Settings", icon: Settings },
   { name: "Personalize", icon: Palette },
+  { name: "Belajar", icon: Layers },
 ];
 export default function Workspace({ initialAuth }: { initialAuth: boolean }) {
   const [authenticated, setAuthenticated] = useState(initialAuth);
@@ -164,6 +166,16 @@ function WorkspaceContent({
     return () => effect?.cancel();
   }, [page]);
   const extended = data as unknown as Dataset;
+  useEffect(() => {
+    const open = () => setPage(5),
+      upload = () => edit("documents");
+    window.addEventListener("orbit-study", open);
+    window.addEventListener("orbit-study-upload", upload);
+    return () => {
+      window.removeEventListener("orbit-study", open);
+      window.removeEventListener("orbit-study-upload", upload);
+    };
+  }, []);
   useEffect(() => {
     if (new URLSearchParams(location.search).get("settings") === "storage")
       setPage(3);
@@ -441,7 +453,7 @@ function WorkspaceContent({
             <div>
               <h1>{navigation[page].name}</h1>
             </div>
-            {page !== 4 && page !== 1 && page !== 2 && (
+            {page !== 4 && page !== 5 && page !== 1 && page !== 2 && (
               <button className="primary" onClick={add}>
                 <Plus size={17} />
                 {
@@ -467,6 +479,7 @@ function WorkspaceContent({
             </p>
           )}
           {page === 4 && <PersonalizeEditor />}
+          {page === 5 && <Study data={extended} />}
           {page < 3 &&
             theme[(["journal", "projects", "documents"] as const)[page]].images
               .length > 0 && (

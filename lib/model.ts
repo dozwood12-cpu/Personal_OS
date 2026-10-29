@@ -11,6 +11,7 @@ export const tables = [
   "transactions",
   "projects",
   "documents",
+  "vault_folders",
   "accounts",
   "transfers",
   "budgets",

@@ -13,6 +13,12 @@ async function allRows(table: string) {
       .select("*")
       .order(table === "app_settings" ? "key" : "id")
       .range(start, start + 999);
+    if (
+      r.error &&
+      table === "vault_folders" &&
+      ["42P01", "PGRST205"].includes(r.error.code)
+    )
+      return [];
     if (r.error)
       throw new Error(
         `${table}: ${r.error.message}. Pastikan migrasi 202610290001 sudah dijalankan.`,
