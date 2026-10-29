@@ -35,7 +35,12 @@ export default function Projects({
     } | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [now, setNow] = useState(Date.now());
+    [now, setNow] = useState(Date.now()),
+    [dateNotice, setDateNotice] = useState<{
+      key: string;
+      message: string;
+      error?: boolean;
+    } | null>(null);
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
@@ -51,6 +56,36 @@ export default function Projects({
     } finally {
       setBusy(false);
     }
+  }
+  async function saveDeadline(
+    table: "mwbs" | "subtasks",
+    record: Row,
+    deadline: string | null,
+  ) {
+    const key = `${table}:${record.id}`;
+    setBusy(true);
+    setDateNotice({ key, message: "Menyimpan…" });
+    try {
+      await writeData(table, "update", { ...record, deadline }, record.id);
+      await refresh();
+      setDateNotice({ key, message: "Tersimpan" });
+    } catch (e) {
+      setDateNotice({ key, message: (e as Error).message, error: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+  function dateFeedback(key: string) {
+    return dateNotice?.key === key ? (
+      <small
+        className={
+          dateNotice.error ? "field-error date-feedback" : "muted date-feedback"
+        }
+        role={dateNotice.error ? "alert" : "status"}
+      >
+        {dateNotice.message}
+      </small>
+    ) : null;
   }
   function remove(table: string, r: Row) {
     if (confirm("Hapus data?"))
@@ -86,6 +121,8 @@ export default function Projects({
       d.setDate(d.getDate() + i);
       days.push(d);
     }
+  } else if (view === "day") {
+    days.push(new Date(anchor));
   } else {
     const start = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
     start.setDate(1 - ((start.getDay() + 6) % 7));
@@ -112,6 +149,8 @@ export default function Projects({
               ["table", "Tabel"],
               ["month", "Bulanan"],
               ["week", "Mingguan"],
+              ["day", "Harian"],
+              ["agenda", "Agenda"],
             ].map(([k, n]) => (
               <button
                 key={k}
@@ -294,8 +333,12 @@ export default function Projects({
                 aria-label="Periode sebelumnya"
                 onClick={() =>
                   setAnchor((a) =>
-                    view === "week"
-                      ? new Date(a.getFullYear(), a.getMonth(), a.getDate() - 7)
+                    view === "week" || view === "day"
+                      ? new Date(
+                          a.getFullYear(),
+                          a.getMonth(),
+                          a.getDate() - (view === "day" ? 1 : 7),
+                        )
                       : new Date(a.getFullYear(), a.getMonth() - 1, 1),
                   )
                 }
@@ -304,6 +347,7 @@ export default function Projects({
               </button>
               <h3>
                 {anchor.toLocaleDateString("id-ID", {
+                  day: view === "day" ? "numeric" : undefined,
                   month: "long",
                   year: "numeric",
                 })}
@@ -313,8 +357,12 @@ export default function Projects({
                 aria-label="Periode berikutnya"
                 onClick={() =>
                   setAnchor((a) =>
-                    view === "week"
-                      ? new Date(a.getFullYear(), a.getMonth(), a.getDate() + 7)
+                    view === "week" || view === "day"
+                      ? new Date(
+                          a.getFullYear(),
+                          a.getMonth(),
+                          a.getDate() + (view === "day" ? 1 : 7),
+                        )
                       : new Date(a.getFullYear(), a.getMonth() + 1, 1),
                   )
                 }
@@ -322,78 +370,179 @@ export default function Projects({
                 →
               </button>
             </div>
-            <p className="muted">
-              Seret jadwal ke tanggal lain, atau klik untuk mengedit.
-            </p>
-            <div className="calendar-scroll">
-              <div className="calendar">
-                {["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"].map((d) => (
-                  <div className="day-label" key={d}>
-                    {d}
-                  </div>
-                ))}
-                {days.map((d) => (
-                  <div
-                    className={"day " + (iso(d) === dateToday() ? "today" : "")}
-                    key={iso(d)}
-                    data-date={iso(d)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const key = e.dataTransfer.getData("text/plain");
-                      const item = items.find(
-                        (item) =>
-                          item.key === key ||
-                          (item.table === "projects" && item.record.id === key),
-                      );
-                      if (item)
-                        void run(async () => {
-                          await writeData(
-                            item.table,
-                            "update",
-                            { ...item.record, deadline: iso(d) },
-                            item.record.id,
-                          );
-                        });
-                    }}
-                  >
-                    <span>{d.getDate()}</span>
-                    {items
-                      .filter((item) => item.deadline === iso(d))
-                      .sort((a, b) => a.key.localeCompare(b.key))
-                      .map((item) => (
-                        <button
-                          key={item.key}
-                          data-work-key={item.key}
-                          className={`calendar-work ${item.progress === 100 ? "work-done" : ""}`}
-                          title={[item.record.title, item.context, item.status]
-                            .filter(Boolean)
-                            .join(" · ")}
-                          draggable={!busy}
-                          onDragStart={(e) =>
-                            e.dataTransfer.setData("text/plain", item.key)
-                          }
-                          onClick={() =>
-                            setForm({ table: item.table, record: item.record })
-                          }
-                        >
-                          <small>
-                            {item.table === "projects"
-                              ? "Proyek"
-                              : item.table === "mwbs"
-                                ? "MWB"
-                                : "Subtask"}
-                          </small>
-                          <span>{String(item.record.title)}</span>
-                          {item.table === "subtasks" && (
-                            <small>{item.context}</small>
-                          )}
-                        </button>
-                      ))}
-                  </div>
-                ))}
-              </div>
+            <div className="toolbar calendar-navigation">
+              <DateField
+                aria-label="Lompat ke tanggal"
+                value={iso(anchor)}
+                required
+                onChange={(e) =>
+                  setAnchor(new Date(e.target.value + "T12:00:00"))
+                }
+              />
+              <button
+                onClick={() => setAnchor(new Date(dateToday() + "T12:00:00"))}
+              >
+                Hari ini
+              </button>
             </div>
+            {view === "agenda" ? (
+              <div className="work-agenda">
+                {(() => {
+                  const month = iso(anchor).slice(0, 7);
+                  const scheduled = items
+                    .filter((item) => item.deadline?.startsWith(month))
+                    .sort(
+                      (a, b) =>
+                        a.deadline!.localeCompare(b.deadline!) ||
+                        String(a.record.title).localeCompare(
+                          String(b.record.title),
+                        ),
+                    );
+                  const dates = [
+                    ...new Set(scheduled.map((item) => item.deadline!)),
+                  ];
+                  return dates.length ? (
+                    dates.map((date) => (
+                      <section key={date} className="agenda-group">
+                        <h3>{formatDate(date)}</h3>
+                        {scheduled
+                          .filter((item) => item.deadline === date)
+                          .map((item) => (
+                            <button
+                              key={item.key}
+                              data-work-key={item.key}
+                              className="agenda-item"
+                              onClick={() =>
+                                setForm({
+                                  table: item.table,
+                                  record: item.record,
+                                })
+                              }
+                            >
+                              <span className="tag">
+                                {item.table === "projects"
+                                  ? "Proyek"
+                                  : item.table === "mwbs"
+                                    ? "MWB"
+                                    : "Subtask"}
+                              </span>
+                              <span>
+                                <b>{String(item.record.title)}</b>
+                                <small className="muted work-context">
+                                  {item.context || item.status}
+                                </small>
+                              </span>
+                              <small className="muted">{item.status}</small>
+                            </button>
+                          ))}
+                      </section>
+                    ))
+                  ) : (
+                    <EmptyState message="Belum ada jadwal pada bulan ini." />
+                  );
+                })()}
+              </div>
+            ) : (
+              <>
+                <p className="muted">
+                  Seret jadwal ke tanggal lain, atau klik untuk mengedit.
+                </p>
+                <div
+                  className={`calendar-scroll ${view === "day" ? "calendar-day-scroll" : ""}`}
+                >
+                  <div
+                    className={`calendar ${view === "day" ? "calendar-daily" : ""}`}
+                  >
+                    {(view === "day"
+                      ? [
+                          anchor.toLocaleDateString("id-ID", {
+                            weekday: "long",
+                          }),
+                        ]
+                      : ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
+                    ).map((d) => (
+                      <div className="day-label" key={d}>
+                        {d}
+                      </div>
+                    ))}
+                    {days.map((d) => (
+                      <div
+                        className={
+                          "day " + (iso(d) === dateToday() ? "today" : "")
+                        }
+                        key={iso(d)}
+                        data-date={iso(d)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const key = e.dataTransfer.getData("text/plain");
+                          const item = items.find(
+                            (item) =>
+                              item.key === key ||
+                              (item.table === "projects" &&
+                                item.record.id === key),
+                          );
+                          if (item)
+                            void run(async () => {
+                              await writeData(
+                                item.table,
+                                "update",
+                                { ...item.record, deadline: iso(d) },
+                                item.record.id,
+                              );
+                            });
+                        }}
+                      >
+                        <span>{d.getDate()}</span>
+                        {view === "day" &&
+                          !items.some((item) => item.deadline === iso(d)) && (
+                            <EmptyState message="Belum ada jadwal pada tanggal ini." />
+                          )}
+                        {items
+                          .filter((item) => item.deadline === iso(d))
+                          .sort((a, b) => a.key.localeCompare(b.key))
+                          .map((item) => (
+                            <button
+                              key={item.key}
+                              data-work-key={item.key}
+                              className={`calendar-work ${item.progress === 100 ? "work-done" : ""}`}
+                              title={[
+                                item.record.title,
+                                item.context,
+                                item.status,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                              draggable={!busy}
+                              onDragStart={(e) =>
+                                e.dataTransfer.setData("text/plain", item.key)
+                              }
+                              onClick={() =>
+                                setForm({
+                                  table: item.table,
+                                  record: item.record,
+                                })
+                              }
+                            >
+                              <small>
+                                {item.table === "projects"
+                                  ? "Proyek"
+                                  : item.table === "mwbs"
+                                    ? "MWB"
+                                    : "Subtask"}
+                              </small>
+                              <span>{String(item.record.title)}</span>
+                              {item.table === "subtasks" && (
+                                <small>{item.context}</small>
+                              )}
+                            </button>
+                          ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
       </section>
@@ -402,6 +551,20 @@ export default function Projects({
           <h3>Major Work Blocks</h3>
           <button onClick={() => setForm({ table: "mwbs" })}>Tambah MWB</button>
         </div>
+        {data.subtasks.some((t) => !("deadline" in t)) && (
+          <div className="schema-notice" role="note">
+            <p>
+              Tanggal subtask belum tersedia di database. Jalankan SQL ini
+              sekali di Supabase → SQL Editor.
+            </p>
+            <code>
+              alter table public.subtasks add column if not exists deadline
+              date;
+              <br />
+              notify pgrst, 'reload schema';
+            </code>
+          </div>
+        )}
         <div className="settings-grid">
           {data.mwbs.map((m) => {
             const sessions = data.focus_sessions.filter(
@@ -446,6 +609,19 @@ export default function Projects({
                   />
                 </summary>
                 <div className="mwb-card-body">
+                  <label>
+                    Tanggal MWB
+                    <DateField
+                      aria-label={`Tanggal MWB ${String(m.title)}`}
+                      value={String(m.deadline || "")}
+                      required
+                      disabled={busy}
+                      onChange={(e) =>
+                        void saveDeadline("mwbs", m, e.target.value)
+                      }
+                    />
+                  </label>
+                  {dateFeedback(`mwbs:${m.id}`)}
                   <label className="checkbox">
                     <input
                       type="checkbox"
@@ -516,23 +692,20 @@ export default function Projects({
                           aria-label={`Tanggal subtask ${String(t.title)}`}
                           value={t.deadline ? String(t.deadline) : ""}
                           disabled={busy}
-                          onChange={(e) => {
-                            const deadline = e.target.value || null;
-                            void run(async () => {
-                              await writeData(
-                                "subtasks",
-                                "update",
-                                { ...t, deadline },
-                                t.id,
-                              );
-                            });
-                          }}
+                          onChange={(e) =>
+                            void saveDeadline(
+                              "subtasks",
+                              t,
+                              e.target.value || null,
+                            )
+                          }
                         />
                         <Actions
                           edit={() => setForm({ table: "subtasks", record: t })}
                           remove={() => remove("subtasks", t)}
                         />
                       </div>
+                      {dateFeedback(`subtasks:${t.id}`)}
                     </div>
                   ))}
                   <button

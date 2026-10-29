@@ -126,10 +126,15 @@ export async function POST(req: Request) {
           throw new Error("Jenis kategori tidak dapat diubah");
       }
     }
-    const r =
+    const mutation =
       action === "update"
-        ? await c.from(table).update(value).eq("id", id)
-        : await c.from(table).insert(value);
+        ? c.from(table).update(value).eq("id", id)
+        : c.from(table).insert(value);
+    const datedWork = table === "mwbs" || table === "subtasks";
+    // Return the saved record, so a missing/stale row cannot report a successful save.
+    const r = datedWork
+      ? await mutation.select("id,deadline").single()
+      : await mutation;
     if (r.error) {
       if (
         table === "subtasks" &&
@@ -139,9 +144,25 @@ export async function POST(req: Request) {
         throw new Error(
           "Tanggal subtask belum tersedia. Jalankan migrasi 202610290002_subtask_deadlines.sql di Supabase SQL Editor.",
         );
+      if (datedWork && r.error.code === "PGRST116")
+        throw new Error(
+          "MWB atau subtask tidak ditemukan. Muat ulang halaman sebelum menyimpan tanggal.",
+        );
+      if (datedWork)
+        throw new Error(`Gagal menyimpan MWB/subtask: ${r.error.message}`);
       throw r.error;
     }
-    return Response.json({ ok: true });
+    if (
+      datedWork &&
+      value.deadline !== undefined &&
+      r.data?.deadline !== value.deadline
+    )
+      throw new Error(
+        "Tanggal yang tersimpan berbeda dari pilihan Anda. Muat ulang halaman lalu coba lagi.",
+      );
+    return Response.json(
+      datedWork ? { ok: true, record: r.data } : { ok: true },
+    );
   } catch (e) {
     return failure(e);
   }

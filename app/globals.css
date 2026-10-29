@@ -2862,3 +2862,80 @@ progress.warning::-moz-progress-bar {
     padding-inline-start: 8px;
   }
 }
+
+.calendar-navigation {
+  justify-content: flex-end;
+}
+.calendar-navigation .date-field {
+  width: 208px;
+}
+.calendar.calendar-daily {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.calendar-day-scroll {
+  overflow: visible;
+}
+.calendar-daily .day {
+  min-height: 240px;
+}
+.calendar-daily .calendar-work {
+  width: 100%;
+  margin-top: 12px;
+}
+.agenda-group {
+  margin-top: 24px;
+}
+.agenda-group > h3 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+.agenda-item {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+.agenda-item > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.agenda-item > small {
+  flex-shrink: 0;
+}
+.date-feedback {
+  display: block;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.schema-notice {
+  padding: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  font-size: 14px;
+}
+.schema-notice code {
+  display: block;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .calendar-navigation {
+    justify-content: flex-start;
+  }
+  .calendar-navigation .date-field {
+    width: auto;
+    flex: 1 1 160px;
+  }
+  .agenda-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .agenda-item > small {
+    width: 100%;
+  }
+}

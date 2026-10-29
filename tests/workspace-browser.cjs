@@ -122,6 +122,7 @@ const requests = [];
     });
     const page = await context.newPage();
     const errors = [];
+    let failDateOnce = false;
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/fixture-*", (route) =>
       route.fulfill({ body: pixels, contentType: "image/png" }),
@@ -131,6 +132,16 @@ const requests = [];
         return route.fulfill({ json: data });
       const b = route.request().postDataJSON();
       requests.push(b);
+      if (b.table === "subtasks" && failDateOnce) {
+        failDateOnce = false;
+        return route.fulfill({
+          status: 400,
+          json: {
+            error:
+              "Tanggal subtask belum tersedia. Jalankan migrasi 202610290002_subtask_deadlines.sql di Supabase SQL Editor.",
+          },
+        });
+      }
       if (b.action === "create")
         data[b.table].push({ id: u(++counter), ...b.data });
       if (b.action === "update")
@@ -347,6 +358,41 @@ const requests = [];
       .focus();
     await page.keyboard.press("Enter");
     assert.equal(await page.locator(".mwb-card[open]").count(), 1);
+    // Inline MWB dates and date-write failures give feedback beside the affected field.
+    await page
+      .getByRole("button", { name: "Tanggal MWB Riset portfolio", exact: true })
+      .click();
+    await page.locator(`.date-popover [data-date="${date}"]`).click();
+    await page
+      .locator(".mwb-card-body > [role=status]")
+      .filter({ hasText: "Tersimpan" })
+      .waitFor();
+    assert.equal(data.mwbs[0].deadline, date);
+    failDateOnce = true;
+    await page
+      .getByRole("button", {
+        name: "Tanggal subtask Kumpulkan referensi",
+        exact: true,
+      })
+      .click();
+    await page.locator(`.date-popover [data-date="${date}"]`).click();
+    await page
+      .locator(".mwb-subtask [role=alert]")
+      .filter({ hasText: "202610290002" })
+      .waitFor();
+    assert.equal(data.subtasks[0].deadline, undefined);
+    await page
+      .getByRole("button", {
+        name: "Tanggal subtask Kumpulkan referensi",
+        exact: true,
+      })
+      .click();
+    await page.locator(`.date-popover [data-date="${date}"]`).click();
+    await page
+      .locator(".mwb-subtask [role=status]")
+      .filter({ hasText: "Tersimpan" })
+      .waitFor();
+    assert.equal(data.subtasks[0].deadline, date);
     // A dated MWB subtask is one record shared by the card, stack table and calendar.
     await page
       .getByRole("button", { name: "Tambah subtask", exact: true })
@@ -377,6 +423,54 @@ const requests = [];
     await page
       .locator(`.day[data-date="${date}"] button[data-work-key="${taskKey}"]`)
       .waitFor();
+    await page.getByRole("button", { name: "Harian", exact: true }).click();
+    assert.equal(await page.locator(".day").count(), 1);
+    await page.locator(`.day button[data-work-key="${taskKey}"]`).waitFor();
+    const previous = new Date(date + "T12:00:00");
+    previous.setDate(previous.getDate() - 1);
+    const prevDate = previous.toLocaleDateString("en-CA");
+    await page
+      .getByRole("button", { name: "Periode sebelumnya", exact: true })
+      .click();
+    assert.equal(
+      await page.locator(".day").getAttribute("data-date"),
+      prevDate,
+    );
+    await page
+      .getByText("Belum ada jadwal pada tanggal ini.", { exact: true })
+      .waitFor();
+    await page.getByRole("button", { name: "Hari ini", exact: true }).click();
+    assert.equal(await page.locator(".day").getAttribute("data-date"), date);
+    await page.getByRole("button", { name: "Agenda", exact: true }).click();
+    await page.locator(`.agenda-item[data-work-key="${taskKey}"]`).click();
+    await page
+      .getByRole("dialog", { name: "Edit data", exact: true })
+      .waitFor();
+    await page.getByRole("button", { name: "Tutup", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Lompat ke tanggal", exact: true })
+      .click();
+    await page.getByLabel("Tahun kalender").selectOption("2040");
+    await page.getByLabel("Bulan kalender").selectOption("0");
+    await page.locator('.date-popover [data-date="2040-01-15"]').click();
+    await page
+      .getByText("Belum ada jadwal pada bulan ini.", { exact: true })
+      .waitFor();
+    await page.getByRole("button", { name: "Hari ini", exact: true }).click();
+    await page.locator(`.agenda-item[data-work-key="${taskKey}"]`).waitFor();
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const name of ["Harian", "Agenda"]) {
+        await page.getByRole("button", { name, exact: true }).click();
+        assert.ok(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `Overflow ${name} ${width}`,
+        );
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole("button", { name: "Mingguan", exact: true }).click();
     await page.locator(`.day button[data-work-key="${taskKey}"]`).waitFor();
     const targetDate = await page
@@ -641,7 +735,7 @@ const requests = [];
     await context.setOffline(false);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS: actual login/session, mock-data pagination/search, 30-day/12-month charts, XLSX download, transfer form, collapsible stacks/cards and expand-all, dated subtask CRUD, hierarchical stacks, month/week sync, calendar drag reschedule, clear date, weekly calendar/edit, focus start/stop, document expiry/preview, direct upload flow, slideshow/preset/avatar, light mode, global search, widget visibility, all five modules at 390/320px, reduced motion, active animation / hidden-tab pause, PWA manifest and offline fallback, logout with public login art.",
+      "PASS: actual login/session, mock-data pagination/search, 30-day/12-month charts, XLSX download, transfer form, collapsible stacks/cards and expand-all, inline MWB date feedback and failed-date retry, daily/agenda navigation and empty state, dated subtask CRUD, hierarchical stacks, month/week sync, calendar drag reschedule, clear date, weekly calendar/edit, focus start/stop, document expiry/preview, direct upload flow, slideshow/preset/avatar, light mode, global search, widget visibility, all five modules at 390/320px, reduced motion, active animation / hidden-tab pause, PWA manifest and offline fallback, logout with public login art.",
     );
   } finally {
     await browser.close();
