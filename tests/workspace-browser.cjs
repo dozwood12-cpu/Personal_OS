@@ -317,6 +317,36 @@ const requests = [];
     await page
       .getByRole("button", { name: "Project & MWBs", exact: true })
       .click();
+    // Stacks and MWB cards start collapsed, with keyboard-accessible disclosure controls.
+    assert.equal(await page.locator("tr[data-work-key]").count(), 1);
+    assert.equal(await page.locator(".mwb-card[open]").count(), 0);
+    await page
+      .getByRole("button", { name: "Buka rincian Portfolio", exact: true })
+      .click();
+    assert.equal(await page.locator("tr[data-work-key]").count(), 2);
+    await page
+      .getByRole("button", {
+        name: "Buka rincian Riset portfolio",
+        exact: true,
+      })
+      .click();
+    assert.equal(await page.locator("tr[data-work-key]").count(), 3);
+    await page
+      .getByRole("button", { name: "Tutup rincian Portfolio", exact: true })
+      .click();
+    assert.equal(await page.locator("tr[data-work-key]").count(), 1);
+    await page.getByRole("button", { name: "Buka semua", exact: true }).click();
+    assert.equal(await page.locator("tr[data-work-key]").count(), 3);
+    await page
+      .getByRole("button", { name: "Tutup semua", exact: true })
+      .click();
+    assert.equal(await page.locator("tr[data-work-key]").count(), 1);
+    await page.getByRole("button", { name: "Buka semua", exact: true }).click();
+    await page
+      .locator('summary[aria-label="Rincian MWB Riset portfolio"]')
+      .focus();
+    await page.keyboard.press("Enter");
+    assert.equal(await page.locator(".mwb-card[open]").count(), 1);
     // A dated MWB subtask is one record shared by the card, stack table and calendar.
     await page
       .getByRole("button", { name: "Tambah subtask", exact: true })
@@ -403,6 +433,7 @@ const requests = [];
     await page.getByLabel("Cari proyek", { exact: true }).fill("Interview FGD");
     assert.equal(await page.locator("tr[data-work-key]").count(), 3);
     await page.getByLabel("Cari proyek", { exact: true }).fill("");
+    await page.getByRole("button", { name: "Buka semua", exact: true }).click();
     page.once("dialog", (d) => d.accept());
     await cardTask.getByRole("button", { name: "Hapus", exact: true }).click();
     await page
@@ -610,7 +641,7 @@ const requests = [];
     await context.setOffline(false);
     assert.deepEqual(errors, []);
     console.log(
-      "PASS: actual login/session, mock-data pagination/search, 30-day/12-month charts, XLSX download, transfer form, dated subtask CRUD, hierarchical stacks, month/week sync, calendar drag reschedule, clear date, weekly calendar/edit, focus start/stop, document expiry/preview, direct upload flow, slideshow/preset/avatar, light mode, global search, widget visibility, all five modules at 390/320px, reduced motion, active animation / hidden-tab pause, PWA manifest and offline fallback, logout with public login art.",
+      "PASS: actual login/session, mock-data pagination/search, 30-day/12-month charts, XLSX download, transfer form, collapsible stacks/cards and expand-all, dated subtask CRUD, hierarchical stacks, month/week sync, calendar drag reschedule, clear date, weekly calendar/edit, focus start/stop, document expiry/preview, direct upload flow, slideshow/preset/avatar, light mode, global search, widget visibility, all five modules at 390/320px, reduced motion, active animation / hidden-tab pause, PWA manifest and offline fallback, logout with public login art.",
     );
   } finally {
     await browser.close();

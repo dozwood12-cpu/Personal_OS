@@ -2800,3 +2800,65 @@ progress.warning::-moz-progress-bar {
     width: auto;
   }
 }
+
+.work-title {
+  align-items: center;
+}
+.work-toggle,
+.work-toggle-placeholder {
+  flex: 0 0 40px;
+}
+.work-toggle-placeholder {
+  width: 40px;
+}
+.work-count {
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.settings-grid > .mwb-card {
+  height: auto;
+  align-self: start;
+}
+.mwb-card > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  cursor: pointer;
+  list-style: none;
+}
+.mwb-card > summary::-webkit-details-marker {
+  display: none;
+}
+.mwb-card > summary > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mwb-card > summary:hover h3 {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.mwb-chevron {
+  flex-shrink: 0;
+  transition: transform var(--duration) var(--ease);
+}
+.mwb-card[open] > summary .mwb-chevron {
+  transform: rotate(180deg);
+}
+.mwb-card-body {
+  margin-top: 24px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 760px) {
+  .work-title {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .work-title > div {
+    flex: 1 1 100%;
+    padding-inline-start: 8px;
+  }
+}

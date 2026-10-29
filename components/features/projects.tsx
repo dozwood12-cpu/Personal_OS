@@ -1,4 +1,5 @@
 "use client";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { DateField } from "@/components/ui/fields";
 import { filterWorkItems, stackWorkItems, workItems } from "@/lib/projects";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,6 +27,7 @@ export default function Projects({
     [q, setQ] = useState(""),
     [status, setStatus] = useState(""),
     [sort, setSort] = useState("deadline"),
+    [expanded, setExpanded] = useState<Record<string, boolean>>({}),
     [form, setForm] = useState<{
       table: string;
       record?: Row;
@@ -58,6 +60,23 @@ export default function Projects({
   }
   const items = filterWorkItems(workItems(data), q, status);
   const rows = stackWorkItems(items, sort);
+  const byKey = new Map(rows.map((item) => [item.key, item]));
+  const childCounts = new Map<string, number>();
+  for (const item of rows)
+    if (item.parent)
+      childCounts.set(item.parent, (childCounts.get(item.parent) || 0) + 1);
+  const isExpanded = (key: string) => expanded[key] ?? !!q.trim();
+  const visibleRows = rows.filter((item) => {
+    let parent = item.parent;
+    while (parent) {
+      if (!isExpanded(parent)) return false;
+      parent = byKey.get(parent)?.parent;
+    }
+    return true;
+  });
+  const allExpanded =
+    childCounts.size > 0 && [...childCounts.keys()].every(isExpanded);
+
   const days: Date[] = [];
   if (view === "week") {
     const monday = new Date(anchor);
@@ -109,7 +128,10 @@ export default function Projects({
             placeholder="Cari proyek / MWB / subtask"
             aria-label="Cari proyek"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setExpanded({});
+            }}
           />
           <select
             aria-label="Filter status"
@@ -134,6 +156,19 @@ export default function Projects({
             <option value="title">Nama</option>
             <option value="progress">Progres tertinggi</option>
           </select>
+          {view === "table" && childCounts.size > 0 && (
+            <button
+              onClick={() =>
+                setExpanded(
+                  Object.fromEntries(
+                    [...childCounts.keys()].map((key) => [key, !allExpanded]),
+                  ),
+                )
+              }
+            >
+              {allExpanded ? "Tutup semua" : "Buka semua"}
+            </button>
+          )}
           <button
             className="primary"
             onClick={() => setForm({ table: "projects" })}
@@ -159,7 +194,7 @@ export default function Projects({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((item) => (
+                {visibleRows.map((item) => (
                   <tr
                     key={item.key}
                     data-work-key={item.key}
@@ -170,6 +205,30 @@ export default function Projects({
                         className="work-title"
                         style={{ paddingInlineStart: item.depth * 16 }}
                       >
+                        {childCounts.has(item.key) ? (
+                          <button
+                            className="icon-button work-toggle"
+                            aria-label={`${isExpanded(item.key) ? "Tutup" : "Buka"} rincian ${String(item.record.title)}`}
+                            aria-expanded={isExpanded(item.key)}
+                            onClick={() =>
+                              setExpanded((current) => ({
+                                ...current,
+                                [item.key]: !isExpanded(item.key),
+                              }))
+                            }
+                          >
+                            {isExpanded(item.key) ? (
+                              <ChevronDown size={18} />
+                            ) : (
+                              <ChevronRight size={18} />
+                            )}
+                          </button>
+                        ) : (
+                          <span
+                            className="work-toggle-placeholder"
+                            aria-hidden="true"
+                          />
+                        )}
                         <span className="tag">
                           {item.table === "projects"
                             ? "Proyek"
@@ -179,6 +238,12 @@ export default function Projects({
                         </span>
                         <div>
                           <b>{String(item.record.title)}</b>
+                          {childCounts.has(item.key) && (
+                            <small className="work-count muted">
+                              {childCounts.get(item.key)}{" "}
+                              {item.table === "projects" ? "MWB" : "subtask"}
+                            </small>
+                          )}
                           {item.context && (
                             <small className="muted work-context">
                               {item.context}
@@ -358,116 +423,131 @@ export default function Projects({
             );
             const tasks = data.subtasks.filter((t) => t.mwb_id === m.id);
             return (
-              <div className="panel" key={m.id}>
-                <h3>{String(m.title)}</h3>
-                <p className="muted">
-                  {String(
-                    data.projects.find((p) => p.id === m.project_id)?.title ||
-                      "Mandiri",
-                  )}{" "}
-                  · {formatDate(m.deadline)}
-                </p>
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={!!m.done}
-                    onChange={(e) =>
-                      void run(async () => {
-                        await writeData(
-                          "mwbs",
-                          "update",
-                          { ...m, done: e.target.checked },
-                          m.id,
-                        );
-                      })
-                    }
+              <details className="panel mwb-card" key={m.id}>
+                <summary aria-label={`Rincian MWB ${String(m.title)}`}>
+                  <div>
+                    <h3>{String(m.title)}</h3>
+                    <p className="muted">
+                      {String(
+                        data.projects.find((p) => p.id === m.project_id)
+                          ?.title || "Mandiri",
+                      )}{" "}
+                      · {formatDate(m.deadline)}
+                    </p>
+                    <small className="muted">
+                      {tasks.filter((t) => t.done).length}/{tasks.length}{" "}
+                      subtask selesai{running ? " · Fokus berjalan" : ""}
+                    </small>
+                  </div>
+                  <ChevronDown
+                    size={20}
+                    className="mwb-chevron"
+                    aria-hidden="true"
                   />
-                  Selesai
-                </label>
-                <div className="focus-timer">
-                  <b>
-                    {String(Math.floor(seconds / 3600)).padStart(2, "0")}:
-                    {String(Math.floor(seconds / 60) % 60).padStart(2, "0")}:
-                    {String(seconds % 60).padStart(2, "0")}
-                  </b>
+                </summary>
+                <div className="mwb-card-body">
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={!!m.done}
+                      onChange={(e) =>
+                        void run(async () => {
+                          await writeData(
+                            "mwbs",
+                            "update",
+                            { ...m, done: e.target.checked },
+                            m.id,
+                          );
+                        })
+                      }
+                    />
+                    Selesai
+                  </label>
+                  <div className="focus-timer">
+                    <b>
+                      {String(Math.floor(seconds / 3600)).padStart(2, "0")}:
+                      {String(Math.floor(seconds / 60) % 60).padStart(2, "0")}:
+                      {String(seconds % 60).padStart(2, "0")}
+                    </b>
+                    <button
+                      disabled={busy}
+                      onClick={() =>
+                        void run(async () => {
+                          if (running)
+                            await command("stop_focus", { id: running.id });
+                          else
+                            await writeData("focus_sessions", "create", {
+                              mwb_id: m.id,
+                            });
+                        })
+                      }
+                    >
+                      {running ? "Hentikan sesi" : "Mulai fokus"}
+                    </button>
+                  </div>
+                  <p className="muted">
+                    {sessions.length} sesi ·{" "}
+                    {tasks.filter((t) => t.done).length}/{tasks.length} subtask
+                  </p>
+                  {!tasks.length && (
+                    <EmptyState message="Belum ada langkah kecil di sini." />
+                  )}
+                  {tasks.map((t) => (
+                    <div className="category-row mwb-subtask" key={t.id}>
+                      <label className="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={!!t.done}
+                          onChange={(e) =>
+                            void run(async () => {
+                              await writeData(
+                                "subtasks",
+                                "update",
+                                { ...t, done: e.target.checked },
+                                t.id,
+                              );
+                            })
+                          }
+                        />
+                        {String(t.title)}
+                      </label>
+                      <div className="subtask-schedule">
+                        <DateField
+                          aria-label={`Tanggal subtask ${String(t.title)}`}
+                          value={t.deadline ? String(t.deadline) : ""}
+                          disabled={busy}
+                          onChange={(e) => {
+                            const deadline = e.target.value || null;
+                            void run(async () => {
+                              await writeData(
+                                "subtasks",
+                                "update",
+                                { ...t, deadline },
+                                t.id,
+                              );
+                            });
+                          }}
+                        />
+                        <Actions
+                          edit={() => setForm({ table: "subtasks", record: t })}
+                          remove={() => remove("subtasks", t)}
+                        />
+                      </div>
+                    </div>
+                  ))}
                   <button
-                    disabled={busy}
                     onClick={() =>
-                      void run(async () => {
-                        if (running)
-                          await command("stop_focus", { id: running.id });
-                        else
-                          await writeData("focus_sessions", "create", {
-                            mwb_id: m.id,
-                          });
-                      })
+                      setForm({ table: "subtasks", defaults: { mwb_id: m.id } })
                     }
                   >
-                    {running ? "Hentikan sesi" : "Mulai fokus"}
+                    Tambah subtask
                   </button>
+                  <Actions
+                    edit={() => setForm({ table: "mwbs", record: m })}
+                    remove={() => remove("mwbs", m)}
+                  />
                 </div>
-                <p className="muted">
-                  {sessions.length} sesi · {tasks.filter((t) => t.done).length}/
-                  {tasks.length} subtask
-                </p>
-                {!tasks.length && (
-                  <EmptyState message="Belum ada langkah kecil di sini." />
-                )}
-                {tasks.map((t) => (
-                  <div className="category-row mwb-subtask" key={t.id}>
-                    <label className="checkbox">
-                      <input
-                        type="checkbox"
-                        checked={!!t.done}
-                        onChange={(e) =>
-                          void run(async () => {
-                            await writeData(
-                              "subtasks",
-                              "update",
-                              { ...t, done: e.target.checked },
-                              t.id,
-                            );
-                          })
-                        }
-                      />
-                      {String(t.title)}
-                    </label>
-                    <div className="subtask-schedule">
-                      <DateField
-                        aria-label={`Tanggal subtask ${String(t.title)}`}
-                        value={t.deadline ? String(t.deadline) : ""}
-                        disabled={busy}
-                        onChange={(e) => {
-                          const deadline = e.target.value || null;
-                          void run(async () => {
-                            await writeData(
-                              "subtasks",
-                              "update",
-                              { ...t, deadline },
-                              t.id,
-                            );
-                          });
-                        }}
-                      />
-                      <Actions
-                        edit={() => setForm({ table: "subtasks", record: t })}
-                        remove={() => remove("subtasks", t)}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <button
-                  onClick={() =>
-                    setForm({ table: "subtasks", defaults: { mwb_id: m.id } })
-                  }
-                >
-                  Tambah subtask
-                </button>
-                <Actions
-                  edit={() => setForm({ table: "mwbs", record: m })}
-                  remove={() => remove("mwbs", m)}
-                />
-              </div>
+              </details>
             );
           })}
         </div>
