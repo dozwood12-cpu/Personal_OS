@@ -119,9 +119,15 @@ const requests = [];
     const context = await browser.newContext({
       viewport: { width: 1440, height: 1000 },
       reducedMotion: "reduce",
+      timezoneId: "Asia/Jakarta",
     });
     const page = await context.newPage();
     const errors = [];
+    const studyRequests = [];
+    page.on("request", (request) => {
+      if (/\/api\/study(?:[?\/]|$)|\/pdfjs\//.test(request.url()))
+        studyRequests.push(request.url());
+    });
     let failDateOnce = false;
     page.on("pageerror", (e) => errors.push(e.message));
     await page.route("**/fixture-*", (route) =>
@@ -562,6 +568,7 @@ const requests = [];
       .getByRole("button", { name: "Arsip Dokumen", exact: true })
       .click();
     await page.getByText("Sertifikat.pdf", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Belajar", exact: true }).count(), 0);
     assert.equal(
       await page
         .getByText(
@@ -636,6 +643,7 @@ const requests = [];
     await page.getByRole("button", { name: "Pencarian global" }).click();
     await page.getByLabel("Cari lintas workspace").fill("Portfolio");
     assert.equal(await page.locator(".global-results button").count(), 1);
+    assert.deepEqual(studyRequests, [], "Removed study module must not make requests");
     await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Widget", exact: true }).click();
     await page.getByLabel("Tenggat proyek", { exact: true }).uncheck();

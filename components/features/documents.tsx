@@ -1,7 +1,7 @@
 "use client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/components/ui/fields";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   command,
   requestJson,
@@ -26,12 +26,6 @@ export default function Documents({
     [edit, setEdit] = useState<Row | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const [studyProgress, setStudyProgress] = useState<any[]>([]);
-  useEffect(() => {
-    void requestJson("/api/study")
-      .then((s) => setStudyProgress(s.progress))
-      .catch(() => {});
-  }, []);
   const [folder, setFolder] = useState("");
   const rows = data.documents.filter(
     (d) =>
@@ -151,19 +145,6 @@ export default function Documents({
                 {String(d.title).split(".").at(-1)?.toUpperCase()}
               </span>
               <h3>{String(d.title)}</h3>
-              {pdf &&
-                (() => {
-                  const p = studyProgress.find((p) => p.document_id === d.id);
-                  const percent = p?.total_pages
-                    ? Math.round((p.pages_read.length / p.total_pages) * 100)
-                    : 0;
-                  return (
-                    <div>
-                      <progress max={100} value={percent} />
-                      <small>{percent}% dibaca</small>
-                    </div>
-                  );
-                })()}
               <small className="muted">
                 {d.storage_provider === "gdrive" ? "Google Drive" : "Supabase"}
               </small>
@@ -204,16 +185,6 @@ export default function Documents({
                   <a className="download" href={"/api/files?id=" + d.id}>
                     Unduh
                   </a>
-                  {pdf && (
-                    <button
-                      onClick={() => {
-                        location.hash = "study=" + d.id;
-                        window.dispatchEvent(new Event("orbit-study"));
-                      }}
-                    >
-                      Belajar
-                    </button>
-                  )}
                   {(image || pdf) && (
                     <button onClick={() => setPreview(d)}>Pratinjau</button>
                   )}

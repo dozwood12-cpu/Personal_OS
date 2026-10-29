@@ -8,7 +8,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { uploadFile } from "@/lib/uploads";
 import { CategoryMark } from "@/components/features/category-mark";
-import Study from "@/components/features/study";
+import dynamic from "next/dynamic";
 import Finance from "@/components/features/finance";
 import Projects from "@/components/features/projects";
 import Documents from "@/components/features/documents";
@@ -21,7 +21,10 @@ import {
   usePersonalization,
 } from "@/components/personalize/provider";
 import { Artwork } from "@/components/personalize/artwork";
-import PersonalizeEditor from "@/components/personalize/editor";
+const PersonalizeEditor = dynamic(
+  () => import("@/components/personalize/editor"),
+  { ssr: false },
+);
 import { Palette } from "lucide-react";
 import { loginReport, networkLoginReport } from "@/lib/login-client";
 import { useEffect, useState, type FormEvent } from "react";
@@ -98,7 +101,6 @@ const navigation = [
   { name: "Arsip Dokumen", icon: FolderLock },
   { name: "Settings", icon: Settings },
   { name: "Personalize", icon: Palette },
-  { name: "Belajar", icon: Layers },
 ];
 export default function Workspace({ initialAuth }: { initialAuth: boolean }) {
   const [authenticated, setAuthenticated] = useState(initialAuth);
@@ -166,16 +168,6 @@ function WorkspaceContent({
     return () => effect?.cancel();
   }, [page]);
   const extended = data as unknown as Dataset;
-  useEffect(() => {
-    const open = () => setPage(5),
-      upload = () => edit("documents");
-    window.addEventListener("orbit-study", open);
-    window.addEventListener("orbit-study-upload", upload);
-    return () => {
-      window.removeEventListener("orbit-study", open);
-      window.removeEventListener("orbit-study-upload", upload);
-    };
-  }, []);
   useEffect(() => {
     if (new URLSearchParams(location.search).get("settings") === "storage")
       setPage(3);
@@ -479,7 +471,6 @@ function WorkspaceContent({
             </p>
           )}
           {page === 4 && <PersonalizeEditor />}
-          {page === 5 && <Study data={extended} />}
           {page < 3 &&
             theme[(["journal", "projects", "documents"] as const)[page]].images
               .length > 0 && (
