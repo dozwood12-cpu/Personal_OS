@@ -6,15 +6,16 @@
   --surface: #0a0a0a;
   --line: #27272a;
   --muted: #a1a1aa;
-  --font-display: var(--font-inter), Arial, sans-serif;
+  --font-display: var(--font-montserrat), Arial, sans-serif;
 }
 * {
   box-sizing: border-box;
 }
 body {
   @apply m-0 bg-black text-zinc-100 antialiased;
-  font-family: var(--font-inter), Arial, sans-serif;
-  font-size: 14px;
+  font-family: var(--font-montserrat), Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
 }
 button,
 a,
@@ -53,7 +54,7 @@ input::placeholder {
   @apply text-zinc-500;
 }
 label {
-  @apply my-5 flex flex-col gap-2 text-xs text-zinc-400;
+  @apply my-5 flex flex-col gap-2 text-sm text-zinc-400;
 }
 h1,
 h2,
@@ -65,7 +66,7 @@ h1,
 h2,
 .brand {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
 }
 h1 {
   @apply text-3xl tracking-tight md:text-4xl;
@@ -79,10 +80,10 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 h3 {
-  @apply text-sm font-medium text-zinc-200;
+  @apply text-base font-medium text-zinc-200;
 }
 small {
-  @apply text-xs;
+  @apply text-sm;
 }
 .muted {
   @apply text-zinc-400;
@@ -100,7 +101,7 @@ small {
   @apply text-white;
 }
 .brand .muted {
-  @apply text-xs tracking-normal text-zinc-500;
+  @apply text-sm tracking-normal text-zinc-500;
 }
 .sidebar > .brand {
   @apply px-3;
@@ -109,35 +110,35 @@ nav {
   @apply mt-12 flex flex-col gap-2;
 }
 nav button {
-  @apply justify-start rounded-lg border border-transparent px-3 py-3 text-xs text-zinc-400;
+  @apply justify-start rounded-lg border border-transparent px-3 py-3 text-sm text-zinc-400;
 }
 nav button.active {
   @apply border-zinc-700/80 bg-zinc-900 text-white;
   box-shadow: inset 0 1px 0 #ffffff08;
 }
 nav small {
-  @apply ml-auto rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300;
+  @apply ml-auto rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 text-[12px] text-zinc-300;
 }
 .sidebar-bottom {
   @apply mt-auto pt-10;
 }
 .profile {
-  @apply w-full justify-start border-t border-zinc-800 pt-5 text-left text-xs;
+  @apply w-full justify-start border-t border-zinc-800 pt-5 text-left text-sm;
 }
 .profile small {
-  @apply mt-1 block text-[10px] text-zinc-500;
+  @apply mt-1 block text-[12px] text-zinc-500;
 }
 .profile > svg {
   @apply ml-auto text-zinc-500;
 }
 .avatar {
-  @apply flex size-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-xs text-zinc-300;
+  @apply flex size-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-sm text-zinc-300;
 }
 .main {
   @apply ml-[224px] min-w-0 flex-1;
 }
 .topbar {
-  @apply flex h-16 items-center gap-6 border-b border-zinc-800/80 px-8 text-xs text-zinc-500;
+  @apply flex h-16 items-center gap-6 border-b border-zinc-800/80 px-8 text-sm text-zinc-500;
 }
 .topbar b {
   @apply font-normal text-zinc-300;
@@ -155,7 +156,7 @@ nav small {
   @apply mb-8 flex items-center justify-between gap-5;
 }
 .primary {
-  @apply whitespace-nowrap rounded-lg border border-white/90 bg-zinc-100 px-4 py-2.5 text-xs font-medium text-black;
+  @apply whitespace-nowrap rounded-lg border border-white/90 bg-zinc-100 px-4 py-2.5 text-sm font-medium text-black;
   box-shadow: 0 0 18px #ffffff08;
 }
 .primary:hover {
@@ -169,13 +170,13 @@ nav small {
   @apply mb-5 grid grid-cols-3 gap-5;
 }
 .card-label {
-  @apply flex items-center justify-between gap-3 text-xs text-zinc-400;
+  @apply flex items-center justify-between gap-3 text-sm text-zinc-400;
 }
 .card-label svg {
   @apply text-zinc-500;
 }
 .stat-foot {
-  @apply flex items-center gap-2 text-[10px] text-zinc-500;
+  @apply flex items-center gap-2 text-[12px] text-zinc-500;
 }
 .balance {
   background:
@@ -183,7 +184,7 @@ nav small {
   border-color: #3f3f46;
 }
 .tiny-badge {
-  @apply rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-[10px] text-zinc-400;
+  @apply rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-[12px] text-zinc-400;
 }
 .middle-grid {
   @apply mb-5 grid grid-cols-[1.6fr_1fr] gap-5;
@@ -192,7 +193,7 @@ nav small {
   @apply mb-5 flex items-center justify-between gap-3;
 }
 .section-head p {
-  @apply mt-2 text-[11px] text-zinc-400;
+  @apply mt-2 text-[13px] text-zinc-400;
 }
 .section-head > svg {
   @apply text-zinc-500;
@@ -211,7 +212,7 @@ nav small {
   @apply flex h-full flex-1 flex-col items-center justify-end gap-3 text-zinc-500;
 }
 .chart-col small {
-  @apply text-[10px];
+  @apply text-[12px];
 }
 .bars {
   @apply flex h-[145px] w-full items-end justify-center gap-2;
@@ -226,7 +227,7 @@ nav small {
   box-shadow: none;
 }
 .legend {
-  @apply mt-5 flex justify-center gap-6 text-[10px] text-zinc-400;
+  @apply mt-5 flex justify-center gap-6 text-[12px] text-zinc-400;
 }
 .legend i {
   @apply mr-2 inline-block size-1.5 rounded-sm bg-zinc-200;
@@ -235,7 +236,7 @@ nav small {
   @apply bg-zinc-600;
 }
 .radar {
-  @apply flex items-center gap-3 border-b border-zinc-800 py-4 text-xs;
+  @apply flex items-center gap-3 border-b border-zinc-800 py-4 text-sm;
 }
 .radar-icon {
   @apply rounded-lg border border-zinc-800 bg-zinc-900 p-2 text-zinc-400;
@@ -244,7 +245,7 @@ nav small {
   @apply block font-normal;
 }
 .radar small {
-  @apply mt-1 block text-[10px] text-zinc-500;
+  @apply mt-1 block text-[12px] text-zinc-500;
 }
 .radar > div {
   @apply min-w-0 flex-1;
@@ -256,19 +257,19 @@ nav small {
   @apply ml-auto text-zinc-400;
 }
 .text-link {
-  @apply mt-4 w-full justify-between rounded-md py-2 text-[11px] text-zinc-300;
+  @apply mt-4 w-full justify-between rounded-md py-2 text-[13px] text-zinc-300;
 }
 .toolbar {
   @apply mb-5 flex flex-wrap gap-2.5;
 }
 .toolbar select {
-  @apply text-xs;
+  @apply text-sm;
 }
 .search {
   @apply flex min-w-[220px] items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950 px-3 text-zinc-500;
 }
 .search input {
-  @apply w-full border-0 bg-transparent px-0 py-2.5 text-xs;
+  @apply w-full border-0 bg-transparent px-0 py-2.5 text-sm;
 }
 .table-wrap {
   @apply overflow-auto;
@@ -277,10 +278,10 @@ table {
   @apply w-full border-collapse whitespace-nowrap text-left;
 }
 th {
-  @apply border-y border-zinc-800 bg-zinc-900/60 px-3 py-3 text-[10px] font-normal tracking-wider text-zinc-500;
+  @apply border-y border-zinc-800 bg-zinc-900/60 px-3 py-3 text-[12px] font-normal tracking-wider text-zinc-500;
 }
 td {
-  @apply border-b border-zinc-800/70 px-3 py-4 text-xs text-zinc-400;
+  @apply border-b border-zinc-800/70 px-3 py-4 text-sm text-zinc-400;
   font-variant-numeric: tabular-nums;
 }
 tbody tr:last-child td {
@@ -305,7 +306,7 @@ td:first-child {
   color: #fafafa !important;
 }
 .tag {
-  @apply inline-block rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-[10px] text-zinc-400;
+  @apply inline-block rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-[12px] text-zinc-400;
 }
 .tag.purple {
   @apply ml-2 border-zinc-600 bg-zinc-800 text-white;
@@ -317,10 +318,10 @@ td:first-child {
   @apply rounded-md p-2 text-zinc-500;
 }
 .empty {
-  @apply flex flex-col items-center gap-4 px-4 py-10 text-center text-xs text-zinc-500;
+  @apply flex flex-col items-center gap-4 px-4 py-10 text-center text-sm text-zinc-500;
 }
 .empty button {
-  @apply rounded-md p-2 text-xs text-zinc-200;
+  @apply rounded-md p-2 text-sm text-zinc-200;
 }
 .empty svg {
   @apply text-zinc-600;
@@ -341,7 +342,7 @@ td:first-child {
   @apply flex gap-1 rounded-lg border border-zinc-800 p-1;
 }
 .segmented button {
-  @apply rounded-md px-3 py-2 text-[11px] text-zinc-500;
+  @apply rounded-md px-3 py-2 text-[13px] text-zinc-500;
 }
 .segmented button.selected {
   @apply bg-zinc-800 text-white;
@@ -356,10 +357,10 @@ td:first-child {
   @apply grid grid-cols-7 border-l border-t border-zinc-800;
 }
 .day-label {
-  @apply border-b border-r border-zinc-800 p-3 text-center text-[10px] text-zinc-500;
+  @apply border-b border-r border-zinc-800 p-3 text-center text-[12px] text-zinc-500;
 }
 .day {
-  @apply min-h-[115px] border-b border-r border-zinc-800 p-2.5 text-xs text-zinc-400;
+  @apply min-h-[115px] border-b border-r border-zinc-800 p-2.5 text-sm text-zinc-400;
 }
 .day.today {
   @apply bg-zinc-900;
@@ -368,7 +369,7 @@ td:first-child {
   @apply inline-flex size-6 items-center justify-center rounded-full bg-zinc-100 text-black;
 }
 .day button {
-  @apply mt-2 block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded border border-zinc-700 bg-zinc-800 p-1.5 text-left text-[10px] text-zinc-200;
+  @apply mt-2 block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded border border-zinc-700 bg-zinc-800 p-1.5 text-left text-[12px] text-zinc-200;
 }
 .document-grid {
   @apply grid grid-cols-3 gap-4;
@@ -383,7 +384,7 @@ td:first-child {
   @apply mb-3 break-words;
 }
 .document p {
-  @apply my-4 text-[10px] text-zinc-500;
+  @apply my-4 text-[12px] text-zinc-500;
 }
 .file-icon {
   @apply inline-flex rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-zinc-300;
@@ -392,7 +393,7 @@ td:first-child {
   @apply rounded-md p-1 text-zinc-500;
 }
 .download {
-  @apply flex items-center justify-center gap-2 rounded-lg border border-zinc-700 py-2.5 text-xs;
+  @apply flex items-center justify-center gap-2 rounded-lg border border-zinc-700 py-2.5 text-sm;
 }
 .download:hover {
   @apply bg-zinc-800;
@@ -401,7 +402,7 @@ td:first-child {
   @apply grid grid-cols-2 gap-5;
 }
 .category-row {
-  @apply flex items-center justify-between border-b border-zinc-800 py-3 text-xs;
+  @apply flex items-center justify-between border-b border-zinc-800 py-3 text-sm;
 }
 .category-row:last-child {
   @apply border-0;
@@ -423,7 +424,7 @@ td:first-child {
   @apply flex-row items-center;
 }
 .error {
-  @apply mb-5 break-words rounded-lg border border-zinc-600 bg-zinc-900 p-3 text-xs text-zinc-100;
+  @apply mb-5 break-words rounded-lg border border-zinc-600 bg-zinc-900 p-3 text-sm text-zinc-100;
 }
 .error button {
   @apply ml-3 underline;
@@ -455,13 +456,13 @@ td:first-child {
   @apply my-2 leading-relaxed;
 }
 .login-error textarea {
-  @apply min-h-[170px] w-full resize-y whitespace-pre-wrap break-words rounded-md border-zinc-700 bg-black p-3 font-mono text-[11px] leading-relaxed text-zinc-300;
+  @apply min-h-[170px] w-full resize-y whitespace-pre-wrap break-words rounded-md border-zinc-700 bg-black p-3 font-mono text-[13px] leading-relaxed text-zinc-300;
 }
 .login-error button {
   @apply mb-2 ml-0 mt-3 rounded-md border border-zinc-600 px-3 py-2 no-underline;
 }
 .login-error small {
-  @apply block text-[10px] text-zinc-500;
+  @apply block text-[12px] text-zinc-500;
 }
 .login-shell:has(.login-error) {
   @apply items-start;
@@ -513,7 +514,7 @@ td:first-child {
     @apply m-0;
   }
   .topbar {
-    @apply h-12 gap-3 px-4 text-[10px];
+    @apply h-12 gap-3 px-4 text-[12px];
   }
   .topbar div span {
     @apply mx-1.5;
@@ -731,7 +732,7 @@ td:first-child {
 }
 .slot-list small {
   color: #a1a1aa;
-  font-size: 10px;
+  font-size: 12px;
 }
 .slot-list .selected {
   background: #27272a;
@@ -758,13 +759,13 @@ td:first-child {
 }
 .image-strip input {
   max-width: 120px;
-  font-size: 10px;
+  font-size: 12px;
 }
 .image-strip label {
   margin: 8px 0;
 }
 .slot-list + .panel > .muted {
-  font-size: 11px;
+  font-size: 13px;
   margin-top: 10px;
 }
 .login-shell {
@@ -895,7 +896,7 @@ td:first-child {
     padding: 8px;
   }
   .preview-login-card input {
-    font-size: 10px;
+    font-size: 12px;
   }
   .sidebar nav button {
     padding: 8px;
@@ -926,7 +927,7 @@ td:first-child {
   padding: 10px;
   border: 1px solid #27272a;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .feature-tabs .selected {
   background: #27272a;
@@ -977,7 +978,7 @@ td:first-child {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   text-align: center;
 }
 .pagination {
@@ -989,11 +990,11 @@ td:first-child {
 }
 .pagination button {
   padding: 8px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .toolbar label {
   margin: 0;
-  font-size: 10px;
+  font-size: 12px;
 }
 .toolbar {
   align-items: center;
@@ -1003,7 +1004,7 @@ td:first-child {
 }
 .finance-cards p {
   margin: 12px 0;
-  font-size: 12px;
+  font-size: 14px;
 }
 progress {
   appearance: none;
@@ -1080,7 +1081,7 @@ td progress {
   justify-content: flex-end;
   gap: 8px;
   margin-bottom: 24px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .platform-tools button {
   padding: 8px;
@@ -1089,7 +1090,7 @@ td progress {
 }
 .platform-tools kbd {
   color: #a1a1aa;
-  font-size: 9px;
+  font-size: 12px;
   margin-left: 5px;
 }
 .global-results {
@@ -1113,19 +1114,19 @@ td progress {
   display: block;
   margin-bottom: 15px;
   color: #a1a1aa;
-  font-size: 12px;
+  font-size: 14px;
 }
 .panel .panel {
   margin: 0;
 }
 .panel > .muted {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .personalize-editor input[type="file"] {
   max-width: 100%;
   width: 100%;
-  font-size: 11px;
+  font-size: 13px;
 }
 .personalize-editor .toolbar input {
   max-width: 100%;
@@ -1134,7 +1135,7 @@ td progress {
   padding: 8px;
   border: 1px solid #3f3f46;
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .personalize-editor output {
   font-variant-numeric: tabular-nums;
@@ -1328,14 +1329,14 @@ input[type="range"] {
     width: 20px;
   }
   .platform-tools button {
-    font-size: 10px;
+    font-size: 12px;
   }
   .art-preview .preview-login-card {
-    font-size: 12px;
+    font-size: 14px;
   }
   .preview-login-card .primary {
     padding: 4px;
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1378,3 +1379,17 @@ input[type="range"] {
 :root[data-mode="light"] .legend i { background: #3f3f46; }
 :root[data-mode="light"] .danger { color: #b91c1c; }
 :root[data-mode="light"] .warning { color: #92400e; }
+
+/* Readable typography across the workspace and compact mobile navigation. */
+body { --font-display: var(--font-montserrat), Arial, sans-serif; }
+input, select, textarea { font-size: 16px; line-height: 1.5; }
+nav button svg { flex-shrink: 0; }
+.section-head h3 { font-weight: 600; }
+@media (max-width: 480px) {
+  .topbar { flex-wrap: wrap; height: auto; min-height: 56px; gap: 4px 12px; padding-top: 10px; padding-bottom: 10px; }
+  .top-date { font-size: 12px; }
+  .platform-tools { gap: 6px; }
+  .platform-tools button { font-size: 12px; }
+  .page-heading > div { min-width: 0; }
+  .profile small { font-size: 12px; }
+}
