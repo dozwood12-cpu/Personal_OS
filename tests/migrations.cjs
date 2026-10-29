@@ -27,6 +27,102 @@ async function setup() {
   );
   await fresh.exec(deadlinesMigration);
   await fresh.exec(deadlinesMigration);
+  const driveMigration = fs.readFileSync(
+    "supabase/migrations/202610290003_google_drive_vault.sql",
+    "utf8",
+  );
+  await fresh.exec(driveMigration);
+  await fresh.exec(driveMigration);
+  for (const table of [
+    "storage_connections",
+    "storage_oauth_states",
+    "vault_uploads",
+    "storage_migrations",
+    "storage_sync_reports",
+  ]) {
+    assert.equal(
+      (
+        await fresh.query(
+          "select relrowsecurity from pg_class where oid=$1::regclass",
+          ["public." + table],
+        )
+      ).rows[0].relrowsecurity,
+      true,
+    );
+    assert.equal(
+      (
+        await fresh.query(
+          "select has_table_privilege('anon',$1,'SELECT') as allowed",
+          ["public." + table],
+        )
+      ).rows[0].allowed,
+      false,
+    );
+  }
+  const category = (
+    await fresh.query("select id from categories where kind='document' limit 1")
+  ).rows[0].id;
+  const legacyDoc = (
+    await fresh.query(
+      "insert into documents(title,path,size,category_id) values('legacy.pdf','legacy.pdf',10,$1) returning id",
+      [category],
+    )
+  ).rows[0].id;
+  assert.equal(
+    (
+      await fresh.query("select storage_provider from documents where id=$1", [
+        legacyDoc,
+      ])
+    ).rows[0].storage_provider,
+    "supabase",
+  );
+  assert.equal(
+    (await fresh.query("select * from claim_vault_migration()")).rows.length,
+    1,
+  );
+  assert.equal(
+    (await fresh.query("select * from claim_vault_migration()")).rows.length,
+    0,
+  );
+  await fresh.exec(
+    "update storage_migrations set lease_until=now()-interval '1 minute'",
+  );
+  assert.equal(
+    (await fresh.query("select * from claim_vault_migration()")).rows.length,
+    1,
+  );
+  await fresh.exec(
+    `update app_settings set value='{"default_provider":"gdrive","max_upload_mb":50}' where key='vault_storage'`,
+  );
+  await fresh.exec(driveMigration);
+  assert.equal(
+    (
+      await fresh.query(
+        "select value from app_settings where key='vault_storage'",
+      )
+    ).rows[0].value.default_provider,
+    "gdrive",
+  );
+  const uploadCategory = (
+    await fresh.query(
+      "insert into categories(name,kind) values('Staging only','document') returning id",
+    )
+  ).rows[0].id;
+  const uploadSession = (
+    await fresh.query(
+      "insert into vault_uploads(provider,name,mime_type,size,category_id,path) values('supabase','staging.pdf','application/pdf',8,$1,'staging-only.pdf') returning id",
+      [uploadCategory],
+    )
+  ).rows[0].id;
+  await fresh.query("delete from categories where id=$1", [uploadCategory]);
+  assert.equal(
+    (
+      await fresh.query("select category_id from vault_uploads where id=$1", [
+        uploadSession,
+      ])
+    ).rows[0].category_id,
+    null,
+  );
   await fresh.close();
   const db = await setup();
   await db.exec(fs.readFileSync("tests/fixtures/legacy-schema.sql", "utf8"));
@@ -250,6 +346,13 @@ async function setup() {
   assert.equal(
     (await db.query("select count(*)::int n from transactions")).rows[0].n,
     5,
+  );
+  await db.exec(driveMigration);
+  await db.exec(driveMigration);
+  assert.equal(
+    (await db.query("select count(*)::int n from storage_connections")).rows[0]
+      .n,
+    0,
   );
   await db.close();
   console.log(

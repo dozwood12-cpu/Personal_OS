@@ -2939,3 +2939,61 @@ progress.warning::-moz-progress-bar {
     width: 100%;
   }
 }
+
+.storage-settings > form,
+.storage-maintenance,
+.storage-report,
+.storage-help {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.storage-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 24px 0;
+}
+.storage-facts small {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.storage-facts b {
+  display: block;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.storage-help summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 8px;
+}
+.storage-help p,
+.storage-message {
+  margin-top: 16px;
+}
+.storage-help code {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.storage-report .checkbox {
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+}
+.vault-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+.vault-upload-progress progress {
+  flex: 1;
+}
+@media (max-width: 380px) {
+  .storage-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

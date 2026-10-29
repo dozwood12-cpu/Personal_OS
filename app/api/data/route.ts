@@ -2,6 +2,7 @@ import { authorized, db, failure, sameOrigin } from "@/lib/server";
 import { tables } from "@/lib/model";
 import { inputs, type Editable } from "@/lib/validation";
 import { z } from "zod";
+import { removeDocumentFile, type VaultDocument } from "@/lib/storage/vault";
 async function allRows(table: string) {
   const c = db();
   const rows = [];
@@ -65,18 +66,10 @@ export async function POST(req: Request) {
           .update({ deletion_state: "pending" })
           .eq("id", id);
         if (mark.error) throw mark.error;
-        const doc = await c
-          .from(table)
-          .select("path")
-          .eq("id", id)
-          .maybeSingle();
+        const doc = await c.from(table).select("*").eq("id", id).maybeSingle();
         if (doc.error) throw doc.error;
         if (doc.data) {
-          const r = await c.storage.from("vault").remove([doc.data.path]);
-          if (r.error)
-            throw new Error(
-              "Penghapusan ditunda; coba hapus lagi. " + r.error.message,
-            );
+          await removeDocumentFile(doc.data as VaultDocument);
         }
       }
       const r = await c.from(table).delete().eq("id", id);

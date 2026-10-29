@@ -2,6 +2,7 @@ import { authorized, db, failure, sameOrigin } from "@/lib/server";
 import { dateToday, tables } from "@/lib/model";
 import { transactionInput } from "@/lib/validation";
 import { z } from "zod";
+import { removeDocumentFile, type VaultDocument } from "@/lib/storage/vault";
 export async function POST(req: Request) {
   if (!sameOrigin(req) || !(await authorized()))
     return new Response("Forbidden", { status: 403 });
@@ -39,12 +40,11 @@ export async function POST(req: Request) {
     } else if (b.action === "retry_deletions") {
       const docs = await c
         .from("documents")
-        .select("id,path")
+        .select("*")
         .eq("deletion_state", "pending");
       if (docs.error) throw docs.error;
       for (const d of docs.data) {
-        const f = await c.storage.from("vault").remove([d.path]);
-        if (f.error) throw f.error;
+        await removeDocumentFile(d as VaultDocument);
         const del = await c.from("documents").delete().eq("id", d.id);
         if (del.error) throw del.error;
       }

@@ -2,6 +2,7 @@ import { authorized, db, failure } from "@/lib/server";
 import { tables } from "@/lib/model";
 import JSZip from "jszip";
 import { Readable } from "node:stream";
+import { openDocument, type VaultDocument } from "@/lib/storage/vault";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function GET() {
@@ -31,35 +32,39 @@ export async function GET() {
       }
       snapshot[table] = rows;
     }
-    const files = [
-      ...(snapshot.documents as { path: string }[]).map((d) => ({
-        path: d.path,
-        bucket: "vault",
-      })),
-      ...(snapshot.personalization as { path: string }[]).map((d) => ({
-        path: d.path,
-        bucket: "personalize",
-      })),
+    const docs = snapshot.documents as VaultDocument[];
+    for (const doc of docs) {
+      if (doc.deletion_state === "pending") continue;
+      total += Number(doc.size);
+      if (total > 100 * 1024 * 1024)
+        throw new Error(
+          "Ekspor ZIP dibatasi 100 MB per permintaan. Unduh dokumen besar secara terpisah melalui Arsip Dokumen.",
+        );
+      const response = await openDocument(doc);
+      if (!response.body)
+        throw new Error("Dokumen tidak dapat dibaca untuk ekspor.");
+      zip.file(
+        "vault/" + doc.path,
+        Readable.fromWeb(
+          response.body as import("node:stream/web").ReadableStream,
+        ),
+        { binary: true },
+      );
+    }
+    const paths = [
+      ...new Set(
+        (snapshot.personalization as { path: string }[]).map((f) => f.path),
+      ),
     ];
-    for (const f of [
-      ...new Map(files.map((f) => [f.bucket + "/" + f.path, f])).values(),
-    ]) {
-      const r = await c.storage.from(f.bucket).download(f.path);
-      if (r.error) {
-        if (
-          (
-            snapshot.documents as { path: string; deletion_state: string }[]
-          ).some((d) => d.path === f.path && d.deletion_state === "pending")
-        )
-          continue;
-        throw r.error;
-      }
+    for (const path of paths) {
+      const r = await c.storage.from("personalize").download(path);
+      if (r.error) throw r.error;
       total += r.data.size;
       if (total > 100 * 1024 * 1024)
         throw new Error(
-          "Ekspor ZIP dibatasi 100 MB per permintaan di serverless. Unduh arsip besar melalui dashboard Supabase.",
+          "Ekspor ZIP dibatasi 100 MB per permintaan. Unduh dokumen besar secara terpisah.",
         );
-      zip.file(f.bucket + "/" + f.path, await r.data.arrayBuffer());
+      zip.file("personalize/" + path, await r.data.arrayBuffer());
     }
     zip.file("workspace.json", JSON.stringify(snapshot, null, 2));
     return new Response(

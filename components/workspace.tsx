@@ -11,6 +11,7 @@ import { CategoryMark } from "@/components/features/category-mark";
 import Finance from "@/components/features/finance";
 import Projects from "@/components/features/projects";
 import Documents from "@/components/features/documents";
+import VaultUpload from "@/components/features/vault-upload";
 import ExtraSettings from "@/components/features/settings";
 import Platform, { defaultWidgets } from "@/components/features/platform";
 import { tables, type Dataset, type Row } from "@/lib/model";
@@ -163,6 +164,10 @@ function WorkspaceContent({
     return () => effect?.cancel();
   }, [page]);
   const extended = data as unknown as Dataset;
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("settings") === "storage")
+      setPage(3);
+  }, []);
   const [widgets, setWidgets] = useState(defaultWidgets);
   useEffect(() => {
     const w = extended.app_settings?.find((s) => s.key === "widgets")?.value;
@@ -535,7 +540,14 @@ function WorkspaceContent({
           )}
         </div>
       </main>
-      {modal && (
+      {modal?.table === "documents" && (
+        <VaultUpload
+          data={extended}
+          refresh={load}
+          close={() => setModal(null)}
+        />
+      )}
+      {modal && modal.table !== "documents" && (
         <div className="modal-backdrop" onClick={() => !busy && setModal(null)}>
           <section
             role="dialog"
@@ -747,18 +759,6 @@ function WorkspaceContent({
                         Major Work Block (MWB)
                       </label>
                     </>
-                  )}
-                  {modal.table === "documents" && (
-                    <label>
-                      File
-                      <FileDrop
-                        aria-label="File"
-                        name="file"
-                        type="file"
-                        accept="application/pdf,image/jpeg,image/png,text/plain,.docx,.xlsx"
-                        required
-                      />
-                    </label>
                   )}
                 </>
               )}

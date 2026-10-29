@@ -1,4 +1,5 @@
 "use client";
+import StorageSettings from "./storage-settings";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/components/ui/fields";
 import { useState } from "react";
@@ -30,6 +31,7 @@ export default function ExtraSettings({
   }
   return (
     <>
+      <StorageSettings refresh={refresh} />
       <section className="panel">
         <h3>Otomasi proyek</h3>
         <label className="checkbox">

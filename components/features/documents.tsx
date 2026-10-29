@@ -54,7 +54,9 @@ export default function Documents({
           Upload dokumen
         </button>
       </div>
-      <p className="muted">PDF, JPG, PNG, TXT, DOCX, XLSX · Maksimal 10 MB</p>
+      <p className="muted">
+        PDF, JPG, PNG, TXT, DOCX, XLSX · Batas ukuran mengikuti Settings
+      </p>
       <div className="toolbar">
         <input
           placeholder="Cari nama / tag"
@@ -110,6 +112,9 @@ export default function Documents({
                 {String(d.title).split(".").at(-1)?.toUpperCase()}
               </span>
               <h3>{String(d.title)}</h3>
+              <small className="muted">
+                {d.storage_provider === "gdrive" ? "Google Drive" : "Supabase"}
+              </small>
               <span className="tag">
                 {String(
                   data.categories.find((c) => c.id === d.category_id)?.name,
