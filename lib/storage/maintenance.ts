@@ -16,16 +16,16 @@ import {
 import { openSupabase, removeSupabase, statSupabase } from "./supabase";
 import { mimeFor } from "./shared";
 export async function migrationProgress() {
-  const pending = await db()
+  const pending = await (await db())
     .from("documents")
     .select("id", { count: "exact", head: true })
     .eq("storage_provider", "supabase")
     .eq("deletion_state", "active");
-  const done = await db()
+  const done = await (await db())
     .from("storage_migrations")
     .select("document_id", { count: "exact", head: true })
     .eq("status", "done");
-  const cleanup = await db()
+  const cleanup = await (await db())
     .from("storage_migrations")
     .select("document_id", { count: "exact", head: true })
     .eq("status", "cleanup");
@@ -41,7 +41,7 @@ export async function migrationProgress() {
 }
 export async function migrateOne(origin: string) {
   await connection();
-  const claimed = await db().rpc("claim_vault_migration");
+  const claimed = await (await db()).rpc("claim_vault_migration");
   if (claimed.error)
     throw new Error(
       "Antrean migrasi belum tersedia. Jalankan migrasi SQL Google Drive.",
@@ -49,7 +49,7 @@ export async function migrateOne(origin: string) {
   const job = claimed.data?.[0];
   if (!job) return { ...(await migrationProgress()), idle: true };
   async function update(value: Record<string, unknown>) {
-    const r = await db()
+    const r = await (await db())
       .from("storage_migrations")
       .update({ ...value, updated_at: new Date().toISOString() })
       .eq("document_id", job.document_id);
@@ -57,7 +57,7 @@ export async function migrateOne(origin: string) {
     Object.assign(job, value);
   }
   try {
-    const loaded = await db()
+    const loaded = await (await db())
       .from("documents")
       .select("*")
       .eq("id", job.document_id)
@@ -164,7 +164,7 @@ export async function migrateOne(origin: string) {
         throw new Error(
           "Salinan Drive gagal diverifikasi. File sumber tetap dipertahankan.",
         );
-      const changed = await db()
+      const changed = await (await db())
         .from("documents")
         .update({
           storage_provider: "gdrive",
@@ -183,7 +183,7 @@ export async function migrateOne(origin: string) {
       await update({ status: "cleanup" });
     }
     // Retryable cleanup also handles a crash after metadata was switched to Drive.
-    const current = await db()
+    const current = await (await db())
       .from("documents")
       .select("storage_provider,drive_file_id")
       .eq("id", job.document_id)
@@ -225,7 +225,7 @@ export async function scanStorage() {
   const documents: VaultDocument[] = [];
   let start = 0;
   while (true) {
-    const r = await db()
+    const r = await (await db())
       .from("documents")
       .select("*")
       .eq("storage_provider", "gdrive")
@@ -236,12 +236,12 @@ export async function scanStorage() {
     start += 500;
   }
   const tracked = new Set(documents.map((d) => d.drive_file_id));
-  const active = await db()
+  const active = await (await db())
     .from("vault_uploads")
     .select("drive_file_id")
     .gt("expires_at", new Date().toISOString());
   if (active.error) throw new Error("Sesi unggah aktif tidak dapat diperiksa.");
-  const jobs = await db()
+  const jobs = await (await db())
     .from("storage_migrations")
     .select("drive_file_id")
     .neq("status", "done");
@@ -278,11 +278,11 @@ export async function scanStorage() {
     }
   }
   const id = crypto.randomUUID();
-  const saved = await db()
+  const saved = await (await db())
     .from("storage_sync_reports")
     .insert({ id, folder_id: folder.id, report });
   if (saved.error) throw new Error("Laporan sinkronisasi gagal disimpan.");
-  await db()
+  await (await db())
     .from("storage_connections")
     .update({ last_synced_at: new Date().toISOString() })
     .eq("provider", "gdrive");
@@ -293,7 +293,7 @@ export async function applySync(
   missingIds: string[],
   untrackedIds: string[],
 ) {
-  const r = await db()
+  const r = await (await db())
     .from("storage_sync_reports")
     .select("*")
     .eq("id", id)
@@ -308,7 +308,7 @@ export async function applySync(
     const entry = report.missing.find((e) => e.document_id === id);
     if (!entry)
       throw new Error("Pilihan metadata tidak tercantum dalam laporan.");
-    const recovering = await db()
+    const recovering = await (await db())
       .from("storage_migrations")
       .select("document_id")
       .eq("document_id", id)
@@ -325,7 +325,7 @@ export async function applySync(
       else throw e;
     }
     if (!absent) continue;
-    const d = await db()
+    const d = await (await db())
       .from("documents")
       .delete()
       .eq("id", id)
@@ -337,7 +337,7 @@ export async function applySync(
   for (const id of untrackedIds) {
     if (!report.untracked.some((e) => e.file_id === id))
       throw new Error("File tidak tercantum dalam laporan.");
-    const tracked = await db()
+    const tracked = await (await db())
       .from("documents")
       .select("id")
       .eq("drive_file_id", id)
@@ -345,13 +345,13 @@ export async function applySync(
     if (tracked.error)
       throw new Error("Metadata file tidak dapat diverifikasi.");
     if (tracked.data) continue;
-    const active = await db()
+    const active = await (await db())
       .from("vault_uploads")
       .select("id")
       .eq("drive_file_id", id)
       .gt("expires_at", new Date().toISOString());
     if (active.error || active.data.length) continue;
-    const jobs = await db()
+    const jobs = await (await db())
       .from("storage_migrations")
       .select("document_id")
       .eq("drive_file_id", id)

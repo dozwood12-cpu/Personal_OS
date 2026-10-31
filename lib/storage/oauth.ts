@@ -26,7 +26,7 @@ export async function oauthStart(session: string, origin: string) {
     JSON.stringify({ state, verifier, session, expires }),
     "orbit:gdrive:oauth:v1",
   );
-  const r = await db()
+  const r = await (await db())
     .from("storage_oauth_states")
     .insert({
       state_hash: digest(state),
@@ -73,9 +73,9 @@ export async function consumeOAuthState(cookie: string, state: string) {
     new TextEncoder().encode(process.env.SESSION_SECRET),
     { algorithms: ["HS256"] },
   );
-  if (verified.payload.role !== "admin")
+  if (!["admin", "member"].includes(String(verified.payload.role)))
     throw new Error("Session koneksi tidak valid.");
-  const consumed = await db()
+  const consumed = await (await db())
     .from("storage_oauth_states")
     .delete()
     .eq("state_hash", digest(state))
@@ -122,7 +122,7 @@ export async function finishOAuth(code: string, verifier: string) {
     throw new Error("Email akun Google tidak tersedia.");
   const old = await connection(false);
   const same = old?.account_email === profile.user.emailAddress;
-  const saved = await db()
+  const saved = await (await db())
     .from("storage_connections")
     .upsert({
       provider: "gdrive",
@@ -158,7 +158,7 @@ export async function disconnectDrive() {
         "Google belum mengonfirmasi pencabutan izin. Coba putuskan koneksi lagi.",
       );
   }
-  const deleted = await db()
+  const deleted = await (await db())
     .from("storage_connections")
     .delete()
     .eq("provider", "gdrive");
@@ -167,7 +167,7 @@ export async function disconnectDrive() {
       "Izin dicabut tetapi penghapusan token lokal gagal. Coba lagi.",
     );
   clearAccessTokens();
-  await db()
+  await (await db())
     .from("vault_uploads")
     .delete()
     .eq("provider", "gdrive")

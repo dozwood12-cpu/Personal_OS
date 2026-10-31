@@ -7,7 +7,7 @@ export async function GET() {
   if (!(await authorized()))
     return new Response("Unauthorized", { status: 401 });
   try {
-    const c = db();
+    const c = (await db());
     const [p, r] = await Promise.all([
       c.from("theme_presets").select("*").order("created_at"),
       c.from("personalization").select("*").order("sort_order"),
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   if (!sameOrigin(req) || !(await authorized()))
     return new Response("Forbidden", { status: 403 });
   try {
-    const c = db();
+    const c = (await db());
     if (req.headers.get("content-type")?.includes("multipart/form-data")) {
       const f = await req.formData();
       const file = f.get("file");
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
 
 async function cleanup(paths: string[]) {
   if (!paths.length) return;
-  const c = db();
+  const c = (await db());
   const used = await c.from("personalization").select("path").in("path", paths);
   if (used.error) throw used.error;
   const keep = new Set(used.data.map((v) => v.path));

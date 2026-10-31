@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/server";
 export async function prepareSupabase(path: string) {
-  const r = await db()
+  const r = await (await db())
     .storage.from("vault")
     .createSignedUploadUrl(path, { upsert: true });
   if (r.error)
@@ -15,7 +15,7 @@ export async function openSupabase(
   range?: string | null,
   signal?: AbortSignal,
 ) {
-  const r = await db().storage.from("vault").createSignedUrl(path, 300);
+  const r = await (await db()).storage.from("vault").createSignedUrl(path, 300);
   if (r.error) throw new Error("Dokumen Supabase tidak dapat dibaca.");
   const response = await fetch(r.data.signedUrl, {
     headers: range ? { Range: range } : {},
@@ -29,7 +29,7 @@ export async function openSupabase(
   return response;
 }
 export async function statSupabase(path: string) {
-  const signed = await db().storage.from("vault").createSignedUrl(path, 60);
+  const signed = await (await db()).storage.from("vault").createSignedUrl(path, 60);
   if (signed.error) throw new Error("File Supabase tidak ditemukan.");
   const r = await fetch(signed.data.signedUrl, {
     method: "HEAD",
@@ -42,14 +42,14 @@ export async function statSupabase(path: string) {
   return { size, type: r.headers.get("content-type")?.split(";")[0] || "" };
 }
 export async function removeSupabase(path: string) {
-  const r = await db().storage.from("vault").remove([path]);
+  const r = await (await db()).storage.from("vault").remove([path]);
   if (r.error)
     throw new Error(
       "File Supabase belum terhapus. Coba ulangi penghapusan tertunda.",
     );
 }
 export async function setSupabaseLimit(bytes: number) {
-  const r = await db().storage.updateBucket("vault", {
+  const r = await (await db()).storage.updateBucket("vault", {
     public: false,
     fileSizeLimit: bytes,
   });

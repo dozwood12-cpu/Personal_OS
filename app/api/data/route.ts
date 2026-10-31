@@ -4,7 +4,7 @@ import { inputs, type Editable } from "@/lib/validation";
 import { z } from "zod";
 import { removeDocumentFile, type VaultDocument } from "@/lib/storage/vault";
 async function allRows(table: string) {
-  const c = db();
+  const c = (await db());
   const rows = [];
   let start = 0;
   while (true) {
@@ -34,9 +34,9 @@ export async function GET() {
     return new Response("Unauthorized", { status: 401 });
   try {
     const data = await Promise.all(
-      tables.map((t) =>
+      tables.map(async (t) =>
         t === "activity_log"
-          ? db()
+          ? (await db())
               .from(t)
               .select("*")
               .order("created_at", { ascending: false })
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     const { table, action, id, data } = await req.json();
     if (!Object.hasOwn(inputs, table))
       throw new Error("Tabel tidak dapat diedit");
-    const c = db();
+    const c = (await db());
     if (action === "delete") {
       z.uuid().parse(id);
       if (table === "documents") {

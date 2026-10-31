@@ -9,7 +9,7 @@ export async function GET() {
   if (!(await authorized()))
     return new Response("Unauthorized", { status: 401 });
   try {
-    const c = db(),
+    const c = (await db()),
       zip = new JSZip(),
       snapshot: Record<string, unknown> = {
         version: 1,

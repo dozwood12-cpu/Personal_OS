@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       .parse(await req.json());
     let parent: string | undefined;
     if (b.parent_id) {
-      const p = await db()
+      const p = await (await db())
         .from("vault_folders")
         .select("*")
         .eq("id", b.parent_id)
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       });
       drive_folder_id = (await f.json()).id;
     }
-    const r = await db()
+    const r = await (await db())
       .from("vault_folders")
       .insert({ ...b, drive_folder_id });
     if (r.error)

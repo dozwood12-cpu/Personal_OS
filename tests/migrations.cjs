@@ -135,6 +135,10 @@ async function setup() {
       "utf8",
     ),
   );
+  const accountSql=fs.readFileSync('supabase/migrations/202610310001_workspace_accounts.sql','utf8');
+  await fresh.exec(accountSql);
+  await fresh.exec(accountSql);
+  assert.equal((await fresh.query("select relrowsecurity from pg_class where relname='workspace_accounts'")).rows[0].relrowsecurity,true);
   await fresh.close();
   const db = await setup();
   await db.exec(fs.readFileSync("tests/fixtures/legacy-schema.sql", "utf8"));

@@ -28,7 +28,7 @@ export type VaultDocument = Row & {
   deletion_state: string;
 };
 export async function getDocument(id: string) {
-  const r = await db()
+  const r = await (await db())
     .from("documents")
     .select("*")
     .eq("id", z.uuid().parse(id))
@@ -87,7 +87,7 @@ export async function documentResponse(doc: VaultDocument, req: Request) {
 export async function removeDocumentFile(doc: VaultDocument) {
   if (doc.storage_provider === "gdrive") {
     if (!doc.drive_file_id) throw new Error("ID file Drive hilang.");
-    const recovery = await db()
+    const recovery = await (await db())
       .from("storage_migrations")
       .select("source_path,size,status,drive_file_id")
       .eq("document_id", doc.id)
@@ -107,7 +107,7 @@ export async function removeDocumentFile(doc: VaultDocument) {
           "Salinan migrasi belum dapat diverifikasi. Pulihkan file Drive atau izinnya sebelum menghapus dokumen ini; sumber Supabase dipertahankan.",
         );
       await removeSupabase(recovery.data.source_path);
-      const cleaned = await db()
+      const cleaned = await (await db())
         .from("storage_migrations")
         .update({ status: "done", lease_until: null })
         .eq("document_id", doc.id);
@@ -120,7 +120,7 @@ export async function removeDocumentFile(doc: VaultDocument) {
   } else await removeSupabase(doc.path);
 }
 export async function category(id: unknown) {
-  const r = await db()
+  const r = await (await db())
     .from("categories")
     .select("kind")
     .eq("id", z.uuid().parse(id))
@@ -164,7 +164,7 @@ export async function prepareUpload(
     : null;
   let chosenFolder: string | null = null;
   if (localFolder) {
-    const f = await db()
+    const f = await (await db())
       .from("vault_folders")
       .select("drive_folder_id")
       .eq("id", localFolder)
@@ -188,7 +188,7 @@ export async function prepareUpload(
     drive_file_id = upload.id;
     uploadUrl = upload.url;
   } else uploadUrl = await prepareSupabase(path);
-  const r = await db()
+  const r = await (await db())
     .from("vault_uploads")
     .insert({
       id,
@@ -210,7 +210,7 @@ export async function prepareUpload(
   return { id, provider, path, uploadUrl, size, name, mime_type: mime };
 }
 export async function uploadTicket(id: string) {
-  const r = await db()
+  const r = await (await db())
     .from("vault_uploads")
     .select("*")
     .eq("id", z.uuid().parse(id))
@@ -237,7 +237,7 @@ export async function resumeUpload(id: string) {
 export async function finishUpload(id: string) {
   const t = await uploadTicket(id);
   if (t.completed_document_id) return { ok: true, id: t.completed_document_id };
-  const existing = await db()
+  const existing = await (await db())
     .from("documents")
     .select("id")
     .eq("path", t.path)
@@ -270,7 +270,7 @@ export async function finishUpload(id: string) {
       );
   }
   const docId = crypto.randomUUID();
-  const r = await db()
+  const r = await (await db())
     .from("documents")
     .insert({
       id: docId,
@@ -284,7 +284,7 @@ export async function finishUpload(id: string) {
       mime_type: t.mime_type,
     });
   if (r.error) {
-    const retry = await db()
+    const retry = await (await db())
       .from("documents")
       .select("id")
       .eq("path", t.path)
@@ -295,7 +295,7 @@ export async function finishUpload(id: string) {
       );
     return { ok: true, id: retry.data.id };
   }
-  await db()
+  await (await db())
     .from("vault_uploads")
     .update({ completed_document_id: docId })
     .eq("id", t.id);

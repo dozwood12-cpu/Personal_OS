@@ -359,7 +359,7 @@ globalThis.fetch = async (input: any, init: any = {}) => {
       const range = h.get("Range");
       if (range) {
         const offset = Number(range.match(/bytes=(\d+)/)?.[1]);
-        return new Response(body.subarray(offset), {
+        return new Response(new Uint8Array(body.subarray(offset)), {
           status: 206,
           headers: {
             ...headers,
@@ -368,7 +368,7 @@ globalThis.fetch = async (input: any, init: any = {}) => {
           },
         });
       }
-      return new Response(body, { headers });
+      return new Response(new Uint8Array(body), { headers });
     }
   }
   throw new Error("Unexpected fixture request " + u.origin + u.pathname);

@@ -11,9 +11,10 @@
     "test:browser": "node tests/workspace-browser.cjs",
     "test:media": "node tests/media-api.cjs",
     "test:schedule": "node tests/work-schedule-api.cjs",
-    "test:storage": "node --conditions=react-server --import tsx tests/storage.test.ts",
+    "test:storage": "node --conditions=react-server --import tsx tests/storage-runner.cjs",
     "test:storage:browser": "node tests/storage-browser.cjs",
-    "test:storage:api": "node tests/storage-api.cjs"
+    "test:storage:api": "node tests/storage-api.cjs",
+    "test:accounts": "node tests/accounts.cjs"
   },
   "dependencies": {
     "@fontsource/shippori-mincho": "^5.3.0",

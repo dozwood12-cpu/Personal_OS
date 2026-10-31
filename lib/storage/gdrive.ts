@@ -33,7 +33,7 @@ export class DriveError extends Error {
   }
 }
 export async function connection(required = true): Promise<Connection | null> {
-  const r = await db()
+  const r = await (await db())
     .from("storage_connections")
     .select("*")
     .eq("provider", "gdrive")
@@ -145,7 +145,7 @@ export async function accessToken(c?: Connection | null): Promise<string> {
     const b = await r.json();
     if (!r.ok) {
       if (b.error === "invalid_grant") {
-        await db()
+        await (await db())
           .from("storage_connections")
           .update({ status: "reconnect" })
           .eq("provider", "gdrive");
@@ -197,7 +197,7 @@ export async function driveRequest(
       headers,
     });
     if (r.status === 401)
-      await db()
+      await (await db())
         .from("storage_connections")
         .update({ status: "reconnect" })
         .eq("provider", "gdrive");
@@ -270,7 +270,7 @@ export async function ensureFolder(conn?: Connection | null) {
     c,
   );
   const f = await r.json();
-  const saved = await db()
+  const saved = await (await db())
     .from("storage_connections")
     .update({ folder_id: f.id, folder_name: f.name })
     .eq("provider", "gdrive");

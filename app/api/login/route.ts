@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
-import { token, sameOrigin } from '@/lib/server';
+import { token, sameOrigin, masterDb } from '@/lib/server';
+import { verifyPassword } from '@/lib/accounts';
 const attempts = new Map<string, { count: number; until: number }>();
 function equal(a: string, b: string) {
  const x = Buffer.from(a), y = Buffer.from(b);
@@ -22,14 +23,16 @@ export async function POST(req: Request) {
  const { username, password } = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
  if (typeof username !== 'string' || typeof password !== 'string' || username.length > 200 || password.length > 1024)
   return fail(400, 'LOGIN_INVALID_REQUEST', 'Isian login tidak valid.', 'Isi username dan password pada form login.');
- if (!equal(username, process.env.ADMIN_USERNAME || 'admin') || !equal(password, process.env.ADMIN_PASSWORD || 'admin')) {
-  attempts.set(ip, { count: a && a.until > now ? a.count + 1 : 1, until: now + 900000 });
-  return fail(401, 'LOGIN_INVALID_CREDENTIALS', 'Username atau password salah.', 'Cocokkan dengan ADMIN_USERNAME dan ADMIN_PASSWORD pada environment Vercel. Setelah mengubah variable, lakukan Redeploy.');
+ let account: {id:string;session_version:number}|null=null;
+ const admin=equal(username,process.env.ADMIN_USERNAME||'admin')&&equal(password,process.env.ADMIN_PASSWORD||'admin');
+ if(!admin){
+  try {const r=await masterDb().from('workspace_accounts').select('id,password_hash,session_version').eq('username',username.trim().toLowerCase()).eq('active',true).maybeSingle();if(r.data&&verifyPassword(password,r.data.password_hash))account=r.data;}catch{}
+  if(!account){attempts.set(ip,{count:a&&a.until>now?a.count+1:1,until:now+900000});return fail(401,'LOGIN_INVALID_CREDENTIALS','Username atau password salah.','Periksa username dan password Anda.');}
  }
  if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)
   return fail(500, 'LOGIN_SESSION_CONFIG', 'SESSION_SECRET belum diatur atau kurang dari 32 karakter.', 'Atur SESSION_SECRET di Vercel untuk environment deployment ini (Production/Preview), lalu Redeploy.');
  try {
-  const t = await token();
+  const t = await token(account?.id,account?.session_version);
   attempts.delete(ip);
   return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store', 'Set-Cookie': `os_session=${t}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800${process.env.NODE_ENV === 'production' ? '; Secure' : ''}` } });
  } catch {

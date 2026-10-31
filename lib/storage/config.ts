@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/server";
 import { defaultVaultConfig, type VaultConfig } from "./shared";
 export async function vaultConfig(): Promise<VaultConfig> {
-  const r = await db()
+  const r = await (await db())
     .from("app_settings")
     .select("value")
     .eq("key", "vault_storage")
@@ -22,7 +22,7 @@ export async function vaultConfig(): Promise<VaultConfig> {
   };
 }
 export async function saveVaultConfig(config: VaultConfig) {
-  const r = await db()
+  const r = await (await db())
     .from("app_settings")
     .upsert({ key: "vault_storage", value: config });
   if (r.error) throw new Error("Pengaturan penyimpanan gagal disimpan.");

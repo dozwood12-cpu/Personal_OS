@@ -6,6 +6,7 @@ import {
   formatDate,
 } from "@/components/ui/fields";
 import { EmptyState } from "@/components/ui/empty-state";
+import { pendingUploadKey } from "@/lib/vault-upload";
 import { uploadFile } from "@/lib/uploads";
 import { CategoryMark } from "@/components/features/category-mark";
 import dynamic from "next/dynamic";
@@ -13,6 +14,7 @@ import Finance from "@/components/features/finance";
 import Projects from "@/components/features/projects";
 import Documents from "@/components/features/documents";
 import VaultUpload from "@/components/features/vault-upload";
+import Accounts from "@/components/features/accounts";
 import ExtraSettings from "@/components/features/settings";
 import Platform, { defaultWidgets } from "@/components/features/platform";
 import { tables, type Dataset, type Row } from "@/lib/model";
@@ -258,6 +260,9 @@ function WorkspaceContent({
                 setError(report);
                 return;
               }
+              localStorage.removeItem(pendingUploadKey);
+              setData(empty);
+              setPage(0);
               setAuth(true);
             } catch {
               setError(networkLoginReport());
@@ -401,8 +406,8 @@ function WorkspaceContent({
             title="Keluar workspace"
             onClick={async () => {
               await fetch("/api/logout", { method: "POST" });
-              setAuth(false);
-              setData(empty);
+              localStorage.removeItem(pendingUploadKey);
+              location.reload();
             }}
           >
             <span className="avatar">
@@ -413,7 +418,7 @@ function WorkspaceContent({
               )}
             </span>
             <span>
-              Admin<small>Keluar workspace</small>
+              Akun<small>Keluar workspace</small>
             </span>
             <LogOut size={16} />
           </button>
@@ -508,6 +513,7 @@ function WorkspaceContent({
           )}
           {page === 3 && (
             <>
+              <Accounts />
               <ExtraSettings data={extended} refresh={load} />
               <div className="settings-grid">
                 {[

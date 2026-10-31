@@ -1,8 +1,8 @@
-import { db } from "@/lib/server";
+import { masterDb } from "@/lib/server";
 // Public surface is limited to optimized active login artwork; no bucket listing or arbitrary paths.
 export async function GET(req: Request) {
   try {
-    const c = db();
+    const c = masterDb();
     const image = new URL(req.url).searchParams.get("image");
     let q = c
       .from("personalization")

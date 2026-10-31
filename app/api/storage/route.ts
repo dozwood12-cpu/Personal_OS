@@ -118,7 +118,7 @@ export async function POST(req: Request) {
             const r = await connection();
             if (r?.folder_id) {
               const old = r.folder_id;
-              const changed = await db()
+              const changed = await (await db())
                 .from("storage_connections")
                 .update({ folder_id: null, folder_name: null })
                 .eq("provider", "gdrive");
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
               try {
                 return await ensureFolder();
               } catch (e) {
-                await db()
+                await (await db())
                   .from("storage_connections")
                   .update({ folder_id: old, folder_name: r.folder_name })
                   .eq("provider", "gdrive");
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
             }
             return ensureFolder();
           })();
-      const r = await db()
+      const r = await (await db())
         .from("storage_connections")
         .update({ folder_id: folder.id, folder_name: folder.name })
         .eq("provider", "gdrive");

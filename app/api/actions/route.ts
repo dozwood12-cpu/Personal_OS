@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     return new Response("Forbidden", { status: 403 });
   try {
     const b = await req.json(),
-      c = db();
+      c = (await db());
     let r;
     if (b.action === "move_category")
       r = await c.rpc("move_category", {
