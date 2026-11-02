@@ -74,7 +74,7 @@ export default function Finance({
     [page, setPage] = useState(1),
     [period, setPeriod] = useState(7),
     [categoryKind, setCategoryKind] = useState("expense"),
-    [categoryFilter, setCategoryFilter] = useState(""),
+    [categoryFilter, setCategoryFilter] = useState<string[] | null>(null),
     [categoryFrom, setCategoryFrom] = useState(""),
     [categoryTo, setCategoryTo] = useState(""),
     [form, setForm] = useState<{ table: string; record?: Row } | null>(null),
@@ -94,7 +94,7 @@ export default function Finance({
   const chart = cashflow(data, period),
     max = Math.max(1, ...chart.flatMap((d) => [d.income, d.expense]));
   const donut = data.categories
-    .filter((c) => c.kind === categoryKind && (!categoryFilter || c.id === categoryFilter))
+    .filter((c) => c.kind === categoryKind && (categoryFilter === null || categoryFilter.includes(c.id)))
     .map((c) => ({
       ...c,
       total: data.transactions
@@ -254,8 +254,8 @@ export default function Finance({
       <section className="panel">
         <h3>{categoryKind === "expense" ? "Pengeluaran" : "Pemasukan"} per kategori</h3>
         <div className="toolbar category-filters">
-          <label>Jenis<select aria-label="Jenis grafik kategori" value={categoryKind} onChange={(e) => { setCategoryKind(e.target.value); setCategoryFilter(""); }}><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select></label>
-          <label>Kategori<select aria-label="Kategori grafik" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}><option value="">Semua kategori</option>{data.categories.filter((c) => c.kind === categoryKind).map((c) => <option key={c.id} value={c.id}>{String(c.name)}</option>)}</select></label>
+          <label>Jenis<select aria-label="Jenis grafik kategori" value={categoryKind} onChange={(e) => { setCategoryKind(e.target.value); setCategoryFilter(null); }}><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select></label>
+          <div className="category-filter-field"><span>Kategori</span><details className="category-multiselect"><summary aria-label="Kategori grafik">{categoryFilter === null ? "Semua kategori" : `${categoryFilter.length} dipilih`}</summary><div className="category-options"><label><input type="checkbox" checked={categoryFilter === null} onChange={(e) => setCategoryFilter(e.target.checked ? null : [])} /> Semua kategori</label>{data.categories.filter((c) => c.kind === categoryKind).map((c) => <label key={c.id}><input type="checkbox" checked={categoryFilter === null || categoryFilter.includes(c.id)} onChange={(e) => {const current = categoryFilter ?? data.categories.filter((item) => item.kind === categoryKind).map((item) => item.id); setCategoryFilter(e.target.checked ? [...current, c.id] : current.filter((id) => id !== c.id));}} />{String(c.name)}</label>)}</div></details></div>
           <label>Dari<DateField aria-label="Dari tanggal grafik kategori" value={categoryFrom} max={categoryTo || undefined} onChange={(e) => setCategoryFrom(e.target.value)} /></label>
           <label>Sampai<DateField aria-label="Sampai tanggal grafik kategori" value={categoryTo} min={categoryFrom || undefined} onChange={(e) => setCategoryTo(e.target.value)} /></label>
         </div>
