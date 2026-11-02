@@ -305,6 +305,13 @@ const requests = [];
     await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await page.getByRole("dialog").waitFor({ state: "hidden" });
     assert.equal(data.budgets.length, 1);
+    assert.equal(data.budgets[0].month, date.slice(0,7) + "-01");
+    await page.getByRole("button", {name:"Bulan anggaran berikutnya",exact:true}).click();
+    await page.getByText("Belum ada anggaran pada bulan ini.", {exact:true}).waitFor();
+    assert.equal(data.budgets.length,1);
+    await page.getByRole("button", {name:"Bulan anggaran sebelumnya",exact:true}).click();
+    assert.equal(await page.locator(".finance-cards section.panel").count(),1);
+
     await page
       .getByRole("button", { name: "Target tabungan", exact: true })
       .click();

@@ -20,6 +20,8 @@ import {
   cashflow,
   filterTransactions,
   monthExpense,
+  shiftMonth,
+  monthlyBudgets,
   duplicateKey,
 } from "@/lib/finance";
 import { CategoryMark } from "./category-mark";
@@ -73,6 +75,7 @@ export default function Finance({
     [account, setAccount] = useState(""),
     [page, setPage] = useState(1),
     [period, setPeriod] = useState(7),
+    [budgetMonth, setBudgetMonth] = useState(() => dateToday().slice(0, 7)),
     [categoryKind, setCategoryKind] = useState("expense"),
     [categoryFilter, setCategoryFilter] = useState<string[] | null>(null),
     [categoryFrom, setCategoryFrom] = useState(""),
@@ -102,6 +105,9 @@ export default function Finance({
         .reduce((n, t) => n + Number(t.amount), 0),
     }))
     .filter((c) => c.total > 0);
+  const budgetRows = monthlyBudgets(data, budgetMonth);
+  const budgetLimit = budgetRows.reduce((sum, b) => sum + Number(b.amount), 0);
+  const budgetSpent = budgetRows.reduce((sum, b) => sum + monthExpense(data, String(b.category_id), budgetMonth), 0);
   const total = donut.reduce((n, c) => n + c.total, 0);
   let offset = 0;
   const gradient = donut
@@ -520,6 +526,7 @@ export default function Finance({
         <>
           <div className="toolbar action-toolbar">
             <button onClick={() => setForm({ table: tab })}>Tambah</button>
+            {tab === "budgets" && <div className="budget-period" role="group" aria-label="Periode anggaran"><button aria-label="Bulan anggaran sebelumnya" onClick={() => setBudgetMonth(shiftMonth(budgetMonth, -1))}>‹</button><DateField aria-label="Bulan anggaran" type="month" value={budgetMonth} onChange={(e) => {if(e.target.value) setBudgetMonth(e.target.value);}} /><button aria-label="Bulan anggaran berikutnya" onClick={() => setBudgetMonth(shiftMonth(budgetMonth, 1))}>›</button><button onClick={() => setBudgetMonth(dateToday().slice(0, 7))}>Bulan ini</button></div>}
             {tab === "recurring_rules" && (
               <button
                 disabled={busy}
@@ -535,11 +542,12 @@ export default function Finance({
               </button>
             )}
           </div>
+          {tab === "budgets" && <section className="panel budget-overview" aria-label="Ringkasan anggaran bulanan"><div><span>Total anggaran</span><strong>{currency(budgetLimit)}</strong></div><div><span>Terpakai pada kategori dianggarkan</span><strong>{currency(budgetSpent)}</strong></div><div><span>{budgetSpent > budgetLimit ? "Melebihi anggaran" : "Sisa anggaran"}</span><strong>{currency(Math.abs(budgetLimit - budgetSpent))}</strong></div></section>}
           <div className="settings-grid finance-cards">
-            {!data[tab].length && (
-              <EmptyState message="Belum ada rencana yang dicatat." />
+            {!(tab === "budgets" ? budgetRows : data[tab]).length && (
+              <EmptyState message={tab === "budgets" ? "Belum ada anggaran pada bulan ini." : "Belum ada rencana yang dicatat."} />
             )}
-            {data[tab].map((r) => {
+            {(tab === "budgets" ? budgetRows : data[tab]).map((r) => {
               const spent =
                   tab === "budgets"
                     ? monthExpense(data, String(r.category_id), String(r.month))
@@ -571,7 +579,7 @@ export default function Finance({
                     <>
                       <h2>{currency(spent)}</h2>
                       <p>
-                        {currency(target)} · {String(r.month || r.deadline)}
+                        {currency(target)} · {tab === "budgets" ? new Date(String(r.month) + "T12:00:00").toLocaleDateString("id-ID", {month:"long", year:"numeric"}) : formatDate(r.deadline)}
                       </p>
                       <progress
                         className={
@@ -609,6 +617,7 @@ export default function Finance({
           data={data}
           table={form.table}
           record={form.record}
+          defaults={form.table === "budgets" ? {month: budgetMonth + "-01"} : undefined}
           refresh={refresh}
           close={() => setForm(null)}
         />

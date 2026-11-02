@@ -70,3 +70,12 @@ export function monthExpense(data: Dataset, category: string, month: string) {
     )
     .reduce((n, t) => n + Number(t.amount), 0);
 }
+
+export function shiftMonth(month: string, offset: number) {
+  const [year, number] = month.slice(0, 7).split('-').map(Number);
+  const d = new Date(Date.UTC(year, number - 1 + offset, 1));
+  return d.toISOString().slice(0, 7);
+}
+export function monthlyBudgets(data: Dataset, month: string) {
+  return data.budgets.filter((b) => String(b.month).slice(0, 7) === month);
+}

@@ -161,3 +161,16 @@ test("Tanggal subtask opsional, tetapi wajib valid ketika diisi", () => {
     false,
   );
 });
+
+test('monthly budgets preserve year boundaries and leap-year history', async () => {
+  const {shiftMonth, monthlyBudgets} = await import('../lib/finance');
+  assert.equal(shiftMonth('2026-12',1),'2027-01');
+  assert.equal(shiftMonth('2027-01',-1),'2026-12');
+  assert.equal(shiftMonth('2026-11',120),'2036-11');
+  const history = {...data, budgets:[{id:'b1',category_id:'out',month:'2028-02-01',amount:100},{id:'b2',category_id:'out',month:'2029-02-01',amount:200}],transactions:[{id:'t1',category_id:'out',date:'2028-02-29',amount:30},{id:'t2',category_id:'out',date:'2029-02-28',amount:40}]} as Dataset;
+  assert.deepEqual(monthlyBudgets(history,'2028-02').map(b=>b.id),['b1']);
+  assert.equal(monthExpense(history,'out','2028-02'),30);
+  assert.equal(monthExpense(history,'out','2029-02'),40);
+  assert.equal(monthExpense(history,'out','2036-11'),0);
+  assert.equal(history.budgets.length,2);
+});

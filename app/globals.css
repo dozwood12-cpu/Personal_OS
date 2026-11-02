@@ -3009,3 +3009,8 @@ progress.warning::-moz-progress-bar {
 @media (max-width: 380px) { .category-options { grid-template-columns: 1fr; } }
 @media (max-width: 380px) { .category-filters { grid-template-columns: 1fr; } }
 .category-filters > label:first-child { grid-column: 1 / -1; }
+.budget-period { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.budget-overview { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; margin-bottom: 24px; }
+.budget-overview > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.budget-overview strong { font-size: 22px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+@media(max-width:760px) { .budget-period { margin-left: 0; width: 100%; } .budget-overview { grid-template-columns: 1fr; gap: 16px; } }

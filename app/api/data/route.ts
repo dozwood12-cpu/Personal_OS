@@ -135,6 +135,7 @@ export async function POST(req: Request) {
       ? await mutation.select("id,deadline").single()
       : await mutation;
     if (r.error) {
+      if (table === "budgets" && r.error.code === "23505") throw new Error("Kategori ini sudah memiliki anggaran pada bulan yang dipilih. Edit anggaran yang ada.");
       if (
         table === "subtasks" &&
         ["42703", "PGRST204"].includes(r.error.code) &&
