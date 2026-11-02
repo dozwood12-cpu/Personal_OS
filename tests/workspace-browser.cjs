@@ -245,6 +245,23 @@ const requests = [];
       .getByRole("heading", { name: "Jurnal Keuangan", exact: true })
       .waitFor();
     await page.getByText("Gaji bulanan", { exact: true }).waitFor();
+    const categoryChart = page.locator("section.panel").filter({has: page.getByLabel("Jenis grafik kategori")});
+    await categoryChart.getByLabel("Kategori grafik").selectOption(u(11));
+    assert.equal(await categoryChart.locator(".category-row").count(), 1);
+    await categoryChart.getByLabel("Jenis grafik kategori").selectOption("income");
+    await page.getByRole("heading", {name: "Pemasukan per kategori"}).waitFor();
+    assert.equal(await categoryChart.locator(".category-row").count(), 1);
+    assert.match(await categoryChart.locator(".donut").innerText(), /5\.000\.000/);
+    const beforeToday = new Date(date + "T12:00:00");
+    beforeToday.setDate(beforeToday.getDate() - 1);
+    const beforeDate = beforeToday.toLocaleDateString("en-CA");
+    await categoryChart.getByLabel("Sampai tanggal grafik kategori").click();
+    await page.locator(`.date-popover [data-date="${beforeDate}"]`).click();
+    assert.equal(await categoryChart.locator(".category-row").count(), 0);
+    assert.match(await categoryChart.locator(".donut").innerText(), /Rp\s*0/);
+
+    await categoryChart.getByLabel("Jenis grafik kategori").selectOption("expense");
+
     assert.equal(await page.locator("table tbody tr").count(), 15);
     await page.getByRole("button", { name: "Berikutnya", exact: true }).click();
     assert.equal(await page.locator("table tbody tr").count(), 2);

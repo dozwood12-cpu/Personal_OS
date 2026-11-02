@@ -73,6 +73,10 @@ export default function Finance({
     [account, setAccount] = useState(""),
     [page, setPage] = useState(1),
     [period, setPeriod] = useState(7),
+    [categoryKind, setCategoryKind] = useState("expense"),
+    [categoryFilter, setCategoryFilter] = useState(""),
+    [categoryFrom, setCategoryFrom] = useState(""),
+    [categoryTo, setCategoryTo] = useState(""),
     [form, setForm] = useState<{ table: string; record?: Row } | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -90,11 +94,11 @@ export default function Finance({
   const chart = cashflow(data, period),
     max = Math.max(1, ...chart.flatMap((d) => [d.income, d.expense]));
   const donut = data.categories
-    .filter((c) => c.kind === "expense")
+    .filter((c) => c.kind === categoryKind && (!categoryFilter || c.id === categoryFilter))
     .map((c) => ({
       ...c,
-      total: rows
-        .filter((t) => t.category_id === c.id)
+      total: data.transactions
+        .filter((t) => t.category_id === c.id && (!categoryFrom || String(t.date) >= categoryFrom) && (!categoryTo || String(t.date) <= categoryTo))
         .reduce((n, t) => n + Number(t.amount), 0),
     }))
     .filter((c) => c.total > 0);
@@ -248,7 +252,13 @@ export default function Finance({
         </div>
       </section>
       <section className="panel">
-        <h3>Pengeluaran per kategori</h3>
+        <h3>{categoryKind === "expense" ? "Pengeluaran" : "Pemasukan"} per kategori</h3>
+        <div className="toolbar category-filters">
+          <label>Jenis<select aria-label="Jenis grafik kategori" value={categoryKind} onChange={(e) => { setCategoryKind(e.target.value); setCategoryFilter(""); }}><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select></label>
+          <label>Kategori<select aria-label="Kategori grafik" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}><option value="">Semua kategori</option>{data.categories.filter((c) => c.kind === categoryKind).map((c) => <option key={c.id} value={c.id}>{String(c.name)}</option>)}</select></label>
+          <label>Dari<DateField aria-label="Dari tanggal grafik kategori" value={categoryFrom} max={categoryTo || undefined} onChange={(e) => setCategoryFrom(e.target.value)} /></label>
+          <label>Sampai<DateField aria-label="Sampai tanggal grafik kategori" value={categoryTo} min={categoryFrom || undefined} onChange={(e) => setCategoryTo(e.target.value)} /></label>
+        </div>
         <div
           className="donut"
           style={{
@@ -264,7 +274,7 @@ export default function Finance({
           </div>
         ))}
         {!total && (
-          <EmptyState message="Belum ada pengeluaran pada filter ini" />
+          <EmptyState message="Belum ada transaksi pada filter ini" />
         )}
       </section>
     </div>
