@@ -24,6 +24,7 @@ import {
   monthlyBudgets,
   duplicateKey,
 } from "@/lib/finance";
+import TimeSeries from "./time-series";
 import { CategoryMark } from "./category-mark";
 import { RecordForm, Actions } from "./forms";
 import Papa from "papaparse";
@@ -256,6 +257,7 @@ export default function Finance({
             Pengeluaran
           </span>
         </div>
+        <TimeSeries data={data} period={period} />
       </section>
       <section className="panel">
         <h3>{categoryKind === "expense" ? "Pengeluaran" : "Pemasukan"} per kategori</h3>

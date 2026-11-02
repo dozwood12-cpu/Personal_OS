@@ -22,8 +22,8 @@ export function filterTransactions(
     )
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
-export function cashflow(data: Dataset, period: number) {
-  const today = dateToday(),
+export function cashflow(data: Dataset, period: number, until = dateToday()) {
+  const today = until,
     end = new Date(today + "T12:00:00Z");
   const monthly = period === 12;
   return Array.from({ length: monthly ? 12 : period }, (_, i) => {

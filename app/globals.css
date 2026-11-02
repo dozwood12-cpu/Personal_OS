@@ -3014,3 +3014,27 @@ progress.warning::-moz-progress-bar {
 .budget-overview > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .budget-overview strong { font-size: 22px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 @media(max-width:760px) { .budget-period { margin-left: 0; width: 100%; } .budget-overview { grid-template-columns: 1fr; gap: 16px; } }
+.time-series { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+.series-filters { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0; }
+.series-filters .checkbox { margin: 0; min-height: 40px; font-size: 14px; }
+.series-chart { display: block; width: 100%; height: auto; min-height: 180px; overflow: visible; }
+.series-chart text { fill: var(--text-secondary); font-size: 11px; font-family: inherit; }
+.series-legend { display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: 13px; }
+.series-legend span { display: inline-flex; gap: 8px; align-items: center; }
+.series-legend i { width: 16px; height: 2px; }
+.series-dates { display: flex; gap: 8px; overflow-x: auto; padding: 16px 0; }
+.series-dates button { flex-shrink: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.series-dates button[aria-pressed="true"] { border-color: var(--text); background: var(--surface-hover); }
+.series-detail { padding-top: 16px; border-top: 1px solid var(--line); }
+.series-totals { display: flex; flex-wrap: wrap; gap: 16px 24px; margin: 16px 0; }
+.series-totals span { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.series-totals strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.series-events { max-height: 280px; overflow-y: auto; }
+.series-events > div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.series-events span { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.series-events small { color: var(--text-secondary); }
+.series-events strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+@media(max-width:480px) { .series-chart { min-height: 0; } .series-events > div { flex-direction: column; gap: 4px; } }
+.series-plot { overflow-x: auto; margin: 8px 0 16px; }
+.series-chart { min-width: 560px; }
+.series-period { max-width: 240px; margin: 16px 0; }

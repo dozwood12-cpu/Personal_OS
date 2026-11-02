@@ -244,7 +244,16 @@ const requests = [];
     await page
       .getByRole("heading", { name: "Jurnal Keuangan", exact: true })
       .waitFor();
-    await page.getByText("Gaji bulanan", { exact: true }).waitFor();
+    await page.locator("table").getByText("Gaji bulanan", { exact: true }).waitFor();
+    const trends = page.locator(".time-series");
+    assert.equal(await trends.locator("polyline").count(), 2);
+    await trends.getByLabel("Makanan", {exact:true}).uncheck();
+    assert.equal(await trends.locator("polyline").count(), 1);
+    await trends.getByLabel("Makanan", {exact:true}).check();
+    await trends.locator(".series-dates button").first().click();
+    assert.equal(await trends.locator(".series-events").count(), 0);
+    await trends.locator(".series-dates button").last().click();
+    assert.equal(await trends.locator(".series-events > div").count(), 17);
     const categoryChart = page.locator("section.panel").filter({has: page.getByLabel("Jenis grafik kategori")});
     const checklistStyle = await categoryChart.getByLabel("Semua kategori", {exact:true}).evaluate((input) => ({width: input.getBoundingClientRect().width, height: input.getBoundingClientRect().height, direction: getComputedStyle(input.parentElement).flexDirection}));
     assert.equal(checklistStyle.width, 20);
