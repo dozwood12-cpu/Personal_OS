@@ -3038,3 +3038,10 @@ progress.warning::-moz-progress-bar {
 .series-plot { overflow-x: auto; margin: 8px 0 16px; }
 .series-chart { min-width: 560px; }
 .series-period { max-width: 240px; margin: 16px 0; }
+.mwb-overview { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-bottom: 24px; }
+.mwb-overview .panel { display: flex; flex-direction: column; gap: 12px; }
+.mwb-overview strong { font-size: 28px; font-variant-numeric: tabular-nums; }
+.calendar-work.work-done { border-color: #31845c; background: color-mix(in srgb, #31845c 12%, var(--surface)); }
+.work-complete-icon { color: #268653; flex: none; }
+.calendar-work > span { display: flex; align-items: center; gap: 6px; }
+@media(max-width:480px) { .mwb-overview { grid-template-columns: repeat(2,minmax(0,1fr)); } .mwb-overview > :last-child { grid-column: 1/-1; } }

@@ -88,3 +88,15 @@ test("Pencarian subtask mempertahankan induk, filter status dan urutan nama", ()
   assert.equal(filterWorkItems(items, "Mandiri", "active").length, 0);
   assert.equal(filterWorkItems(items, "Oprec", "active").length, 5);
 });
+
+test('MWB progress follows subtask checkboxes even with a stale done flag', () => {
+  const copy = structuredClone(data);
+  copy.mwbs[0].done = true;
+  assert.equal(workItems(copy).find(i=>i.key==='mwbs:m')?.progress,33);
+  copy.subtasks = copy.subtasks.map(t=>t.mwb_id==='m'?{...t,done:true}:t);
+  const finished=workItems(copy).find(i=>i.key==='mwbs:m');
+  assert.equal(finished?.progress,100);
+  assert.equal(finished?.status,'Selesai');
+  copy.subtasks[0].done=false;
+  assert.ok(workItems(copy).find(i=>i.key==='mwbs:m')!.progress<100);
+});

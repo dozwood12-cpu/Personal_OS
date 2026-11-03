@@ -29,12 +29,15 @@ async function allRows(table: string) {
   }
   return rows;
 }
-export async function GET() {
+export async function GET(req: Request) {
   if (!(await authorized()))
     return new Response("Unauthorized", { status: 401 });
   try {
+    const requested = new URL(req.url).searchParams.get("tables")?.split(",");
+    if (requested?.some(t => !(tables as readonly string[]).includes(t))) throw new Error("Tabel tidak valid");
+    const selected = requested ? tables.filter(t => requested.includes(t)) : tables;
     const data = await Promise.all(
-      tables.map(async (t) =>
+      selected.map(async (t) =>
         t === "activity_log"
           ? (await db())
               .from(t)
@@ -49,7 +52,7 @@ export async function GET() {
       ),
     );
     return Response.json(
-      Object.fromEntries(tables.map((t, i) => [t, data[i]])),
+      Object.fromEntries(selected.map((t, i) => [t, data[i]])),
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (e) {

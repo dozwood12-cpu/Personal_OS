@@ -1,5 +1,5 @@
 "use client";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronRight } from "lucide-react";
 import { DateField } from "@/components/ui/fields";
 import { filterWorkItems, stackWorkItems, workItems } from "@/lib/projects";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,12 +16,19 @@ import { Actions, RecordForm } from "./forms";
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 export default function Projects({
-  data,
+  data: source,
   refresh,
 }: {
   data: Dataset;
   refresh: () => Promise<void>;
 }) {
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const data: Dataset = {...source, mwbs: source.mwbs.map(r => pending[r.id] === undefined ? r : {...r,done:pending[r.id]}), subtasks: source.subtasks.map(r => pending[r.id] === undefined ? r : {...r,done:pending[r.id]})};
+  async function toggleDone(table: string, record: Row, done: boolean) {
+    setPending(p => ({...p,[record.id]:done}));
+    await run(async () => { await writeData(table,"update",{...record,done},record.id); });
+    setPending(p => {const next={...p}; delete next[record.id]; return next;});
+  }
   const [view, setView] = useState("table"),
     [anchor, setAnchor] = useState(new Date()),
     [q, setQ] = useState(""),
@@ -139,8 +146,12 @@ export default function Projects({
       days.push(d);
     }
   }
+  const mwbStats = workItems(data).filter(item => item.table === "mwbs");
+  const completed = mwbStats.filter(item => item.progress === 100).length;
+  const average = mwbStats.length ? Math.round(mwbStats.reduce((sum,item)=>sum+item.progress,0)/mwbStats.length) : 0;
   return (
     <>
+      <section className="mwb-overview" aria-label="Ringkasan progres MWB"><div className="panel"><span>Total MWB</span><strong>{mwbStats.length}</strong></div><div className="panel"><span>Selesai</span><strong>{completed}</strong></div><div className="panel"><span>Rata-rata progres</span><strong>{average}%</strong><progress max={100} value={average}/></div></section>
       <section className="panel">
         <div className="section-head">
           <h3>Proyek & MWB · {rows.length}</h3>
@@ -531,7 +542,7 @@ export default function Projects({
                                     ? "MWB"
                                     : "Subtask"}
                               </small>
-                              <span>{String(item.record.title)}</span>
+                              <span>{item.progress === 100 && <Check size={16} aria-label="Selesai" className="work-complete-icon" />}{String(item.record.title)}</span>
                               {item.table === "subtasks" && (
                                 <small>{item.context}</small>
                               )}
@@ -585,6 +596,7 @@ export default function Projects({
               0,
             );
             const tasks = data.subtasks.filter((t) => t.mwb_id === m.id);
+            const completion = mwbStats.find(item => item.record.id === m.id)?.progress || 0;
             return (
               <details className="panel mwb-card" key={m.id}>
                 <summary aria-label={`Rincian MWB ${String(m.title)}`}>
@@ -625,20 +637,13 @@ export default function Projects({
                   <label className="checkbox">
                     <input
                       type="checkbox"
-                      checked={!!m.done}
-                      onChange={(e) =>
-                        void run(async () => {
-                          await writeData(
-                            "mwbs",
-                            "update",
-                            { ...m, done: e.target.checked },
-                            m.id,
-                          );
-                        })
-                      }
+                      checked={tasks.length ? tasks.every(t => t.done) : !!m.done}
+                      disabled={busy || tasks.length > 0}
+                      onChange={(e) => void toggleDone("mwbs", m, e.target.checked)}
                     />
                     Selesai
                   </label>
+                  <div className="mwb-progress"><strong>{completion}%</strong><progress max={100} value={completion} aria-label={`Progres MWB ${String(m.title)}`} /></div>
                   <div className="focus-timer">
                     <b>
                       {String(Math.floor(seconds / 3600)).padStart(2, "0")}:
@@ -674,16 +679,8 @@ export default function Projects({
                         <input
                           type="checkbox"
                           checked={!!t.done}
-                          onChange={(e) =>
-                            void run(async () => {
-                              await writeData(
-                                "subtasks",
-                                "update",
-                                { ...t, done: e.target.checked },
-                                t.id,
-                              );
-                            })
-                          }
+                          disabled={busy}
+                          onChange={(e) => void toggleDone("subtasks", t, e.target.checked)}
                         />
                         {String(t.title)}
                       </label>

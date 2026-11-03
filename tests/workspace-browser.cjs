@@ -133,7 +133,7 @@ const requests = [];
     await page.route("**/fixture-*", (route) =>
       route.fulfill({ body: pixels, contentType: "image/png" }),
     );
-    await page.route("**/api/data", async (route) => {
+    await page.route(/\/api\/data(?:\?.*)?$/,  async (route) => {
       if (route.request().method() === "GET")
         return route.fulfill({ json: data });
       const b = route.request().postDataJSON();
@@ -403,6 +403,12 @@ const requests = [];
       .focus();
     await page.keyboard.press("Enter");
     assert.equal(await page.locator(".mwb-card[open]").count(), 1);
+    const taskCheckbox=page.locator('.mwb-subtask input[type="checkbox"]').first();
+    await taskCheckbox.check();
+    await page.waitForFunction(()=>!document.querySelector('.mwb-subtask input[type="checkbox"]')?.disabled);
+    assert.equal(await page.getByRole('progressbar',{name:'Progres MWB Riset portfolio'}).getAttribute('value'),'100');
+    await taskCheckbox.uncheck();
+    await page.waitForFunction(()=>!document.querySelector('.mwb-subtask input[type="checkbox"]')?.disabled);
     // Inline MWB dates and date-write failures give feedback beside the affected field.
     await page
       .getByRole("button", { name: "Tanggal MWB Riset portfolio", exact: true })

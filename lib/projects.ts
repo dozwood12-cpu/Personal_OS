@@ -36,6 +36,7 @@ export function workItems(data: Dataset): WorkItem[] {
   for (const m of data.mwbs) {
     const project = projects.get(String(m.project_id));
     const tasks = data.subtasks.filter((t) => t.mwb_id === m.id);
+    const progress = tasks.length ? Math.round(tasks.filter(t => t.done).length / tasks.length * 100) : m.done ? 100 : 0;
     items.push({
       key: `mwbs:${m.id}`,
       table: "mwbs",
@@ -44,14 +45,8 @@ export function workItems(data: Dataset): WorkItem[] {
       parent: project ? `projects:${project.id}` : undefined,
       context: project ? String(project.title) : "MWB mandiri",
       statusId: project?.status_id as string | undefined,
-      status: m.done ? "Selesai" : "Belum selesai",
-      progress: m.done
-        ? 100
-        : tasks.length
-          ? Math.round(
-              (tasks.filter((t) => t.done).length / tasks.length) * 100,
-            )
-          : 0,
+      status: progress === 100 ? "Selesai" : "Belum selesai",
+      progress,
       deadline: m.deadline ? String(m.deadline) : null,
     });
   }

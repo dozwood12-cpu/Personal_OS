@@ -133,10 +133,10 @@ function WorkspaceContent({
       table: string;
       record?: Record<string, unknown>;
     } | null>(null);
-  async function load() {
+  async function load(subset?: string[]) {
     setLoading(true);
     try {
-      const r = await fetch("/api/data");
+      const r = await fetch("/api/data" + (subset ? "?tables=" + subset.join(",") : ""));
       if (r.status === 401) {
         setAuth(false);
         setError(
@@ -146,7 +146,7 @@ function WorkspaceContent({
       }
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
-      setData({ ...empty, ...d });
+      setData(previous => ({...previous, ...d}));
       setError("");
     } catch (e) {
       setError(String((e as Error).message));
@@ -198,7 +198,7 @@ function WorkspaceContent({
     setBusy(true);
     try {
       await mutate(table, "delete", id);
-      await load();
+      await load(table === "transactions" ? ["transactions","accounts","activity_log"] : undefined);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -229,8 +229,9 @@ function WorkspaceContent({
           payload,
         );
       }
+      const changed = modal.table;
       setModal(null);
-      await load();
+      await load(changed === "transactions" ? ["transactions","accounts","activity_log"] : undefined);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -496,14 +497,14 @@ function WorkspaceContent({
               )}
               <Finance
                 data={extended}
-                refresh={load}
+                refresh={() => load(["transactions","accounts","transfers","budgets","savings_goals","recurring_rules","activity_log"])}
                 widgets={widgets}
                 editTransaction={(r) => edit("transactions", r)}
                 removeTransaction={(r) => void remove("transactions", r.id)}
               />
             </>
           )}
-          {page === 1 && <Projects data={extended} refresh={load} />}
+          {page === 1 && <Projects data={extended} refresh={() => load(["projects","mwbs","subtasks","focus_sessions","categories","activity_log"])} />}
           {page === 2 && (
             <Documents
               data={extended}
